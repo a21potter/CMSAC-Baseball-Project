@@ -1,0 +1,19 @@
+---
+title: "Baseball-R-Dataset"
+author: "Nicholas Esposito and Amber Potter"
+date: "7/6/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Dataset
+
+```{r}
+library(baseballr)
+
+bref_standings_on_date("2022-07-06", "AL East", from = FALSE)
+```
+
