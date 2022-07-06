@@ -15,5 +15,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(baseballr)
 
 bref_standings_on_date("2022-07-06", "AL East", from = FALSE)
+
+statcast_data <- statcast_search_batters("2022-04-01", "2022-07-06")
+```
+```{r}
+head(statcast_data)
 ```
 
