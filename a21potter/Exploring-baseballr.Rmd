@@ -1,0 +1,17 @@
+---
+title: "Exploring `baseballr` Package"
+author: "Nicholas Esposito & Amber Potter"
+date: "7/6/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load `baseballr`
+
+```{r}
+library(baseballr)
+```
+
