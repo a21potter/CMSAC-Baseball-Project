@@ -13,12 +13,43 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(baseballr)
+library(tidyverse)
 
 bref_standings_on_date("2022-07-06", "AL East", from = FALSE)
 
-statcast_data <- statcast_search_batters("2022-04-01", "2022-07-06")
+# statcast_data <- statcast_search_batters("2022-04-01", Sys.Date())
 ```
+## Download Batter Data
+
 ```{r}
-head(statcast_data)
+statcast_data_batters <- statcast_search_batters(start_date = "2022-04-01", 
+                                                 end_date = Sys.Date())
+```
+
+## Download Pitcher Data
+
+```{r}
+statcast_data_pitchers <- statcast_search_pitchers(start_date = "2022-04-01",
+                                                   end_date = Sys.Date())
+```
+
+
+## Cleaning
+
+```{r}
+statcast_data_batters <- statcast_data_batters[ , colSums(is.na(statcast_data_batters)) < nrow(statcast_data_batters)]
+
+statcast_data_pitchers <- statcast_data_pitchers[ , colSums(is.na(statcast_data_pitchers)) < nrow(statcast_data_pitchers)]
+```
+
+## View counts for each type of shift (standard, infield shift, and strategic).
+
+```{r}
+head(statcast_data_batters, n = 10)
+if_alignment <- statcast_data_batters %>%
+  group_by(if_fielding_alignment) %>%
+  summarize(count = n()) 
+
+if_alignment
 ```
 
