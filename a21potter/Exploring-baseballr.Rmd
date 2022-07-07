@@ -9,9 +9,55 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Load `baseballr`
+## Load `baseballr` & Other Packages
 
 ```{r}
 library(baseballr)
+
+library(tidyverse)
+```
+
+## Download Batter Data
+
+```{r}
+statcast_data_batters <- statcast_search_batters(start_date = "2022-04-01", 
+                                                 end_date = Sys.Date())
+```
+
+## Download Pitcher Data
+
+```{r}
+statcast_data_pitchers <- statcast_search_pitchers(start_date = "2022-04-01",
+                                                   end_date = Sys.Date())
+```
+
+
+## Cleaning
+
+```{r}
+statcast_data_batters <- statcast_data_batters[ , colSums(is.na(statcast_data_batters)) < nrow(statcast_data_batters)]
+
+statcast_data_pitchers <- statcast_data_pitchers[ , colSums(is.na(statcast_data_pitchers)) < nrow(statcast_data_pitchers)]
+```
+
+
+## EDA
+
+```{r}
+statcast_data %>%
+  group_by(if_fielding_alignment) %>%
+  summarize(count = n())
+
+# statcast_data_batters %>%
+#   drop_na() %>%
+#   group_by(if_fielding_alignment) %>%
+#   summarize(count = n())
+
+statcast_data_batters %>%
+  
+
+  
+  
+
 ```
 
