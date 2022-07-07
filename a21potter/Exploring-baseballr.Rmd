@@ -44,16 +44,17 @@ statcast_data_pitchers <- statcast_data_pitchers[ , colSums(is.na(statcast_data_
 ## EDA
 
 ```{r}
-statcast_data %>%
-  group_by(if_fielding_alignment) %>%
-  summarize(count = n())
-
 # statcast_data_batters %>%
 #   drop_na() %>%
 #   group_by(if_fielding_alignment) %>%
 #   summarize(count = n())
 
-statcast_data_batters %>%
+statcast_data_pitchers <- statcast_data_pitchers %>%
+  mutate(pitch_outcome = case_when(events != "" ~ events,
+                                   events == "" ~ description)) %>%
+  mutate(pitch_outcome = case_when(events == "strikeout" & description == "swinging_strike" ~ "strikeout_swinging",
+                                   events == "strikeout" & description == "called_strike" ~ "strikeout_called",
+                                   TRUE ~ pitch_outcome))
   
 
   
