@@ -52,4 +52,10 @@ if_alignment <- statcast_data_batters %>%
 
 if_alignment
 ```
+## Group different statistics by shift type
+```{r}
+if_alignment <- statcast_data_batters %>%
+  group_by(if_fielding_alignment) %>%
+  summarize(count = n()) 
+```
 
