@@ -29,6 +29,9 @@ statcast_data_batters <- statcast_search_batters(start_date = "2022-04-01",
 ```{r}
 statcast_data_pitchers <- statcast_search_pitchers(start_date = "2022-04-01",
                                                    end_date = Sys.Date())
+
+statcast_data_batters %>%
+  distinct(description)
 ```
 
 
@@ -54,11 +57,34 @@ statcast_data_pitchers <- statcast_data_pitchers %>%
                                    events == "" ~ description)) %>%
   mutate(pitch_outcome = case_when(events == "strikeout" & description == "swinging_strike" ~ "strikeout_swinging",
                                    events == "strikeout" & description == "called_strike" ~ "strikeout_called",
-                                   TRUE ~ pitch_outcome))
+                                   TRUE ~ pitch_outcome),
+         game_id = game_pk) %>%
+  select(-game_pk)
   
 
-  
-  
+statcast_data_batters <- statcast_data_batters %>%
+  mutate(pitch_outcome = case_when(events != "" ~ events,
+                                   events == "" ~ description)) %>%
+  mutate(pitch_outcome = case_when(events == "strikeout" & description == "swinging_strike" ~ "strikeout_swinging",
+                                   events == "strikeout" & description == "called_strike" ~ "strikeout_called",
+                                   TRUE ~ pitch_outcome),
+         game_id = game_pk) %>%
+  select(-game_pk)
 
+
+```
+
+## Creating at bat number column
+
+```{r}
+statcast_data_batters <- statcast_data_batters %>%
+  count(game_id, batter, at_bat_number) %>%
+  group_by(game_id, batter) %>%
+  mutate(combination=1:n()) 
+
+statcast_data_pitchers <- statcast_data_pitchers %>%
+  count(game_id, batter, at_bat_number) %>%
+  group_by(game_id, batter) %>%
+  mutate(combination=1:n()) 
 ```
 
