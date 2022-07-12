@@ -24,6 +24,9 @@ bref_standings_on_date("2022-07-06", "AL East", from = FALSE)
 ```{r}
 statcast_data_batters <- statcast_search_batters(start_date = "2022-04-01", 
                                                  end_date = Sys.Date())
+
+statcast_data_batters %>%
+  distinct(description)
 ```
 
 ## Download Pitcher Data
@@ -31,20 +34,61 @@ statcast_data_batters <- statcast_search_batters(start_date = "2022-04-01",
 ```{r}
 statcast_data_pitchers <- statcast_search_pitchers(start_date = "2022-04-01",
                                                    end_date = Sys.Date())
+
+statcast_data_batters %>%
+  distinct(description)
 ```
 
 
 ## Cleaning
 
 ```{r}
+# Clean the batting data - Remove N/As and fix strikeout cols
 statcast_data_batters <- statcast_data_batters[ , colSums(is.na(statcast_data_batters)) < nrow(statcast_data_batters)]
 
+statcast_data_batters <- statcast_data_batters %>%
+  mutate(pitch_outcome = case_when(events != "" ~ events,
+                                   events == "" ~ description)) %>%
+  mutate(pitch_outcome = case_when(events == "strikeout" & description == "swinging_strike" ~ "strikeout_swinging",
+                                   events == "strikeout" & description == "called_strike" ~ "strikeout_called",
+                                   TRUE ~ pitch_outcome),
+         game_id = game_pk) %>%
+  select(-game_pk)
+
+# Clean the pitching data - Remove N/As and fix strikeout cols
 statcast_data_pitchers <- statcast_data_pitchers[ , colSums(is.na(statcast_data_pitchers)) < nrow(statcast_data_pitchers)]
+
+statcast_data_pitchers <- statcast_data_pitchers %>%
+  mutate(pitch_outcome = case_when(events != "" ~ events,
+                                   events == "" ~ description)) %>%
+  mutate(pitch_outcome = case_when(events == "strikeout" & description == "swinging_strike" ~ "strikeout_swinging",
+                                   events == "strikeout" & description == "called_strike" ~ "strikeout_called",
+                                   TRUE ~ pitch_outcome),
+         game_id = game_pk) %>%
+  select(-game_pk)
 ```
 
-## View counts for each type of shift (standard, infield shift, and strategic).
+## Create AB counter columns
 
 ```{r}
+# Add at-bat column for batting data (1, 2, 3...)
+statcast_data_batters <- statcast_data_batters %>%
+  count(game_id, batter, at_bat_number) %>%
+  group_by(game_id, batter) %>%
+  mutate(combination=1:n()) 
+
+# Add at-bat column for pitching data (1, 2, 3...)
+statcast_data_pitchers <- statcast_data_pitchers %>%
+  count(game_id, batter, at_bat_number) %>%
+  group_by(game_id, batter) %>%
+  mutate(combination=1:n()) 
+```
+
+## EDA
+
+```{r}
+# View counts for each type of shift (standard, infield shift, and strategic)
+
 head(statcast_data_batters, n = 10)
 if_alignment <- statcast_data_batters %>%
   group_by(if_fielding_alignment) %>%
@@ -52,10 +96,3 @@ if_alignment <- statcast_data_batters %>%
 
 if_alignment
 ```
-## Group different statistics by shift type
-```{r}
-if_alignment <- statcast_data_batters %>%
-  group_by(if_fielding_alignment) %>%
-  summarize(count = n()) 
-```
-
