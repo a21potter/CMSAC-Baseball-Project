@@ -1,4 +1,4 @@
-# PURPOSE: Create CSV for Batting/Pitching datasets
+# PURPOSE: Create CSV for Batting/Pitching data sets
 
 
 # Load the data -----------------------------------------------------------
