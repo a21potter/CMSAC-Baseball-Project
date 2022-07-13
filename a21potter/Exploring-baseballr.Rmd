@@ -77,14 +77,56 @@ statcast_data_batters <- statcast_data_batters %>%
 ## Creating at bat number column
 
 ```{r}
-statcast_data_batters <- statcast_data_batters %>%
+statcast_data_batters_at_bat <- statcast_data_batters %>%
   count(game_id, batter, at_bat_number) %>%
   group_by(game_id, batter) %>%
-  mutate(combination=1:n()) 
+  mutate(at_bat_of_game=1:n()) %>%
+  select(-n)
+
+statcast_data_batters <- statcast_data_batters %>%
+  left_join(statcast_data_batters_at_bat, 
+            by = c("game_id" = "game_id", 
+                   "batter" = "batter", 
+                   "at_bat_number" = "at_bat_number")) 
+
+
+statcast_data_pitchers_at_bat <- statcast_data_pitchers %>%
+  count(game_id, batter, at_bat_number) %>%
+  group_by(game_id, batter) %>%
+  mutate(at_bat_of_game=1:n()) %>%
+  select(-n)
 
 statcast_data_pitchers <- statcast_data_pitchers %>%
-  count(game_id, batter, at_bat_number) %>%
-  group_by(game_id, batter) %>%
-  mutate(combination=1:n()) 
+  left_join(statcast_data_pitchers_at_bat, 
+            by = c("game_id" = "game_id", 
+                   "batter" = "batter", 
+                   "at_bat_number" = "at_bat_number")) 
 ```
 
+
+
+## Counts and Percentages of Sample
+
+
+```{r}
+statcast_data_batters %>%
+  filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
+  #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  mutate(prob = n/sum(n))
+```
+
+
+```{r}
+statcast_data_batters %>%
+  filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
+  mutate(if_fielding_alignment = case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
+                                           if_fielding_alignment == "Strategic" ~ "Shift",
+                                           if_fielding_alignment == "Standard" ~ "Standard")) %>%
+  mutate(of_fielding_alignment = case_when(of_fielding_alignment == "4th outfielder" ~ "Shift",
+                                           of_fielding_alignment == "Strategic" ~ "Shift",
+                                           of_fielding_alignment == "Standard" ~ "Standard")) %>%
+  #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  mutate(prob = n/sum(n))
+```
