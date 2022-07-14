@@ -68,31 +68,36 @@ statcast_data_pitchers <- statcast_data_pitchers %>%
   select(-game_pk)
 ```
 
-## Create AB counter columns
+## Create AB counter columns and merge by game ID
 
 ```{r}
 # Add at-bat column for batting data (1, 2, 3...)
-statcast_data_batters <- statcast_data_batters %>%
+statcast_data_batters_at_bats <- statcast_data_batters %>%
   count(game_id, batter, at_bat_number) %>%
   group_by(game_id, batter) %>%
-  mutate(combination=1:n()) 
+  mutate(at_bat_of_game=1:n()) 
+
+# Merge to original dataframe
+statcast_data_batters <- statcast_data_batters %>%
+  left_join(statcast_data_batters_at_bats, 
+            by = c("game_id" = "game_id", "batter" = "batter", "at_bat_number" = "at_bat_number")) %>%
+  select(-n)
 
 # Add at-bat column for pitching data (1, 2, 3...)
-statcast_data_pitchers <- statcast_data_pitchers %>%
+statcast_data_pitchers_at_bats <- statcast_data_pitchers %>%
   count(game_id, batter, at_bat_number) %>%
   group_by(game_id, batter) %>%
-  mutate(combination=1:n()) 
+  mutate(at_bat_of_game=1:n()) 
+
+# Merge to original dataframe
+statcast_data_pitchers <- statcast_data_pitchers %>%
+  left_join(statcast_data_pitchers_at_bats, by = c("game_id" = "game_id", "batter" = "batter", "at_bat_number" = "at_bat_number"))  %>%
+  select(-n)
 ```
 
 ## EDA
 
 ```{r}
-# View counts for each type of shift (standard, infield shift, and strategic)
-
-head(statcast_data_batters, n = 10)
-if_alignment <- statcast_data_batters %>%
-  group_by(if_fielding_alignment) %>%
-  summarize(count = n()) 
-
-if_alignment
+statcast_data_pitchers
 ```
+

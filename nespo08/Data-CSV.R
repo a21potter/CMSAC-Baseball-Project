@@ -63,6 +63,8 @@ statcast_data_pitchers_2022 <- statcast_search_pitchers(start_date = "2022-04-07
                                                       end_date = Sys.Date())
 
 
+scrape_statcast_savant()
+
 # Combine years into two dataframes ---------------------------------------
 
 statcast_data_batters <- merge(statcast_data_batters_2015, statcast_data_batters_2016,
