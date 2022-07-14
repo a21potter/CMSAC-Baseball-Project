@@ -5,65 +5,53 @@
 
 library(baseballr)
 library(tidyverse)
+library(DBI)
+library(RPostgreSQL)
 
+
+# Load by year - Bill Petti function --------------------------------------
+
+annual_statcast_query <- function(season) {
+  
+  dates <- seq.Date(as.Date(paste0(season, '-03-01')),
+                    as.Date(paste0(season, '-12-01')), by = 'week')
+  
+  date_grid <- tibble(start_date = dates, 
+                      end_date = dates + 6)
+  
+  safe_savant <- safely(scrape_statcast_savant)
+  
+  payload <- map(.x = seq_along(date_grid$start_date), 
+                 ~{message(paste0('\nScraping week of ', date_grid$start_date[.x], '...\n'))
+                   
+                   payload <- safe_savant(start_date = date_grid$start_date[.x], 
+                                          end_date = date_grid$end_date[.x], type = 'pitcher')
+                   
+                   return(payload)
+                 })
+  
+  payload_df <- map(payload, 'result')
+  
+  number_rows <- map_df(.x = seq_along(payload_df), 
+                        ~{number_rows <- tibble(week = .x, 
+                                                number_rows = length(payload_df[[.x]]$game_date))}) %>%
+    filter(number_rows > 0) %>%
+    pull(week)
+  
+  payload_df_reduced <- payload_df[number_rows]
+  
+  combined <- payload_df_reduced %>%
+    bind_rows()
+  
+  return(combined)
+  
+}
 
 # Batting data  -----------------------------------------------------------
-
-statcast_data_batters_2015 <- statcast_search_batters(start_date = "2015-04-05", 
-                                                 end_date = "2015-11-01")
-
-statcast_data_batters_2016 <- statcast_search_batters(start_date = "2016-04-03", 
-                                                      end_date = "2016-11-02")
-
-statcast_data_batters_2017 <- statcast_search_batters(start_date = "2017-04-02", 
-                                                      end_date = "2017-11-01")
-
-statcast_data_batters_2018 <- statcast_search_batters(start_date = "2018-03-29", 
-                                                      end_date = "2018-10-28")
-
-statcast_data_batters_2019 <- statcast_search_batters(start_date = "2019-03-20", 
-                                                      end_date = "2019-10-30")
-
-statcast_data_batters_2020 <- statcast_search_batters(start_date = "2020-07-23", 
-                                                      end_date = "2020-10-27")
-
-statcast_data_batters_2021 <- statcast_search_batters(start_date = "2021-04-01", 
-                                                      end_date = "2021-11-02")
-
-statcast_data_batters_2022 <- statcast_search_batters(start_date = "2022-04-07", 
-                                                      end_date = Sys.Date())
-
 
 
 # Pitching data -----------------------------------------------------------
 
-
-statcast_data_pitchers_2015 <- statcast_search_pitchers(start_date = "2015-04-05", 
-                                                      end_date = "2015-11-01")
-
-statcast_data_pitchers_2016 <- statcast_search_pitchers(start_date = "2016-04-03", 
-                                                      end_date = "2016-11-02")
-
-statcast_data_pitchers_2017 <- statcast_search_pitchers(start_date = "2017-04-02", 
-                                                      end_date = "2017-11-01")
-
-statcast_data_pitchers_2018 <- statcast_search_pitchers(start_date = "2018-03-29", 
-                                                      end_date = "2018-10-28")
-
-statcast_data_pitchers_2019 <- statcast_search_pitchers(start_date = "2019-03-20", 
-                                                      end_date = "2019-10-30")
-
-statcast_data_pitchers_2020 <- statcast_search_pitchers(start_date = "2020-07-23", 
-                                                      end_date = "2020-10-27")
-
-statcast_data_pitchers_2021 <- statcast_search_pitchers(start_date = "2021-04-01", 
-                                                      end_date = "2021-11-02")
-
-statcast_data_pitchers_2022 <- statcast_search_pitchers(start_date = "2022-04-07", 
-                                                      end_date = Sys.Date())
-
-
-scrape_statcast_savant()
 
 # Combine years into two dataframes ---------------------------------------
 

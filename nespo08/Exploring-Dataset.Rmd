@@ -95,9 +95,44 @@ statcast_data_pitchers <- statcast_data_pitchers %>%
   select(-n)
 ```
 
-## EDA
+## Counts and Percentages of Sample
 
 ```{r}
-statcast_data_pitchers
+statcast_data_batters %>%
+  filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
+  #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  mutate(prob = n/sum(n))
+```
+
+
+```{r}
+statcast_data_batters %>%
+  filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
+  mutate(if_fielding_alignment = case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
+                                           if_fielding_alignment == "Strategic" ~ "Shift",
+                                           if_fielding_alignment == "Standard" ~ "Standard")) %>%
+  mutate(of_fielding_alignment = case_when(of_fielding_alignment == "4th outfielder" ~ "Shift",
+                                           of_fielding_alignment == "Strategic" ~ "Shift",
+                                           of_fielding_alignment == "Standard" ~ "Standard")) %>%
+  #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  mutate(prob = n/sum(n))
+```
+
+```{r}
+statcast_data_batters %>%
+  #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  count(stand, p_throws) %>%
+  mutate(prob = n/sum(n))
+```
+
+## Prelim. Spray Charts
+
+```{r}
+statcast_data_batters %>%
+  filter(stand == "R", p_throws == "L") %>%
+  ggspraychart("hc_x", "-hc_y", bin_size = 100, point_alpha = 0.25, frame = TRUE) +
+  facet_grid()
 ```
 
