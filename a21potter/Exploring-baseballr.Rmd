@@ -130,3 +130,10 @@ statcast_data_batters %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   mutate(prob = n/sum(n))
 ```
+
+```{r}
+statcast_data_batters %>%
+  #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  count(stand, p_throws) %>%
+  mutate(prob = n/sum(n))
+```
