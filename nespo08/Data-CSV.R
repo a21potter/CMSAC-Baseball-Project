@@ -7,6 +7,7 @@ library(baseballr)
 library(tidyverse)
 library(DBI)
 library(RPostgreSQL)
+library(glue)
 
 
 # Load by year - Bill Petti function --------------------------------------
@@ -44,23 +45,17 @@ annual_statcast_query <- function(season) {
     bind_rows()
   
   return(combined)
-  
 }
 
-# Batting data  -----------------------------------------------------------
+year <- seq(2015, 2022, 1)
 
+for (i in 1:8){
+  temp <- annual_statcast_query(year[i])
+  write.csv(temp, file = glue("data-nick/statcast_data_batters_", as.character(year[i])))
+}
 
-# Pitching data -----------------------------------------------------------
-
-
-# Combine years into two dataframes ---------------------------------------
-
-statcast_data_batters <- merge(statcast_data_batters_2015, statcast_data_batters_2016,
-                               statcast_data_batters_2017, statcast_data_batters_2018,
-                               statcast_data_batters_2019, statcast_data_batters_2020,
-                               statcast_data_batters_2021, statcast_data_batters_2022)
-  
-# statcast_data_pitchers <-
+#temp <- annual_statcast_query(2022)
+#write.csv(temp, file = glue("data-nick/statcast_data_batters_", as.character(2022)))
 
 # Data cleaning -----------------------------------------------------------
 
