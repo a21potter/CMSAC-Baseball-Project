@@ -15,18 +15,14 @@ knitr::opts_chunk$set(echo = TRUE)
 library(baseballr)
 library(tidyverse)
 
-statcast_data_all <- read_rds("data/statcast_data_clean.rds")
-
-# Clean names
-
-statcast_data_all %>%
+statcast_data_all <- read_rds("data/statcast_data_clean.rds") %>%
   janitor::clean_names()
 ```
-## TEMP: Filter for 2020-22
+## TEMP: Filter for 2022
 
 ```{r}
-statcast_data_2020_to_22 <- statcast_data_all %>%
-  filter(game_date >= "2020-04-01")
+statcast_data_2022 <- statcast_data_all %>%
+  filter(game_year == "2022")
 ```
 
 
@@ -71,5 +67,26 @@ statcast_data_2020_to_22 %>%
   mutate(count = n()) %>%
   filter(count > 480) %>% # ~ 480 at-bats
   count()
+```
+## Explore percentages
+```{r}
+
+# Create new variable - avg woba, avg babip, prop of Ks, prop of BBs
+statcast_data_2022 %>%
+  group_by(player_name) %>%
+  filter(events != "") %>%
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events = "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  summarize(stand, p_throws, if_fielding_alignment, of_fielding_alignment,
+            bb_rate = count(events == "walk") / nrow(),
+            k_rate = count(events == "strikeout") / nrow(),
+            babip = mean(babip_value),
+            woba = mean(woba_value))
+
+# statcast_data_2022 %>%
+#   group_by(stand, p_throws, if_fielding_alignment, of_fielding_alignment)
+  
 ```
 
