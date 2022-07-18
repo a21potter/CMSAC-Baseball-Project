@@ -73,7 +73,6 @@ statcast_data_combined <- statcast_data_combined %>%
 #   left_join(statcast_data_pitchers_at_bats, by = c("game_id" = "game_id", "batter" = "batter", "at_bat_number" = "at_bat_number"))  %>%
 #   select(-n)
 
-
 # Write as single RDS file ------------------------------------------------
 
 write_rds(statcast_data_combined, glue("data/statcast_data_clean.rds"), compress = "gz")

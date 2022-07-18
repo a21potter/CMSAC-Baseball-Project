@@ -9,13 +9,18 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Load Dataset
+## Load Dataset
 
 ```{r}
 library(baseballr)
 library(tidyverse)
 
-statcast_data_all <- read_rds("data-nick/statcast_data_clean.rds")
+statcast_data_all <- read_rds("data/statcast_data_clean.rds")
+
+# Clean names
+
+statcast_data_all %>%
+  janitor::clean_names()
 ```
 ## TEMP: Filter for 2020-22
 
@@ -25,19 +30,18 @@ statcast_data_2020_to_22 <- statcast_data_all %>%
 ```
 
 
-## Counts and Percentages of Sample
+## EDA
 
 ```{r}
-statcast_data_all %>%
+# Counts and percentages of variables by shift type and pitcher/batter matchups
+statcast_data_2020_to_22 %>%
   filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
   #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   mutate(prob = n/sum(n))
-```
 
-
-```{r}
-statcast_data_batters %>%
+# Counts and percentages of variables by combination of shift type and pitcher/batter matchups
+statcast_data_2020_to_22 %>%
   filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
   mutate(if_fielding_alignment = case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
                                            if_fielding_alignment == "Strategic" ~ "Shift",
@@ -48,21 +52,24 @@ statcast_data_batters %>%
   #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   mutate(prob = n/sum(n))
-```
 
-```{r}
-statcast_data_batters %>%
+# Table by pitcher/batter matchups (regardless of shift type)
+statcast_data_2020_to_22 %>%
   #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   count(stand, p_throws) %>%
   mutate(prob = n/sum(n))
-```
 
-## Prelim. Spray Charts
+# Prelim. spray charts
+# statcast_data_2020_to_22 %>%
+#   filter(game_year == 2022) %>%
+#   ggspraychart("hc_x", "-hc_y", bin_size = 100, point_alpha = 0.25, frame = TRUE) +
+#   facet_wrap(~stand)
 
-```{r}
-statcast_data_batters %>%
-  filter(stand == "R", p_throws == "L") %>%
-  ggspraychart("hc_x", "-hc_y", bin_size = 100, point_alpha = 0.25, frame = TRUE) +
-  facet_grid()
+# Group by player
+statcast_data_2020_to_22 %>%
+  group_by(player_name, stand) %>%
+  mutate(count = n()) %>%
+  filter(count > 480) %>% # ~ 480 at-bats
+  count()
 ```
 
