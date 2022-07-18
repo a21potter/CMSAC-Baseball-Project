@@ -1,16 +1,20 @@
+library(glue)
+library(tidyverse)
+
+
 # PURPOSE: Preprocess the data and save as single RDS
 
 
 # Bind the year-by-year data into one dataframe ---------------------------
 
-statcast_data_2015 <- read_rds("data-nick/statcast_data_2015.rds")
-statcast_data_2016 <- read_rds("data-nick/statcast_data_2016.rds")
-statcast_data_2017 <- read_rds("data-nick/statcast_data_2017.rds")
-statcast_data_2018 <- read_rds("data-nick/statcast_data_2018.rds")
-statcast_data_2019 <- read_rds("data-nick/statcast_data_2019.rds")
-statcast_data_2020 <- read_rds("data-nick/statcast_data_2020.rds")
-statcast_data_2021 <- read_rds("data-nick/statcast_data_2021.rds")
-statcast_data_2022 <- read_rds("data-nick/statcast_data_2022.rds")
+statcast_data_2015 <- read_rds("data/statcast_data_2015.rds")
+statcast_data_2016 <- read_rds("data/statcast_data_2016.rds")
+statcast_data_2017 <- read_rds("data/statcast_data_2017.rds")
+statcast_data_2018 <- read_rds("data/statcast_data_2018.rds")
+statcast_data_2019 <- read_rds("data/statcast_data_2019.rds")
+statcast_data_2020 <- read_rds("data/statcast_data_2020.rds")
+statcast_data_2021 <- read_rds("data/statcast_data_2021.rds")
+statcast_data_2022 <- read_rds("data/statcast_data_2022.rds")
 
 statcast_data_combined <- rbind(statcast_data_2015, statcast_data_2016,
                                 statcast_data_2017, statcast_data_2018,
@@ -72,4 +76,4 @@ statcast_data_combined <- statcast_data_combined %>%
 
 # Write as single RDS file ------------------------------------------------
 
-write_rds(statcast_data_combined, glue("data-nick/statcast_data_clean.rds"), compress = "gz")
+write_rds(statcast_data_combined, glue("data/statcast_data_clean.rds"), compress = "gz")
