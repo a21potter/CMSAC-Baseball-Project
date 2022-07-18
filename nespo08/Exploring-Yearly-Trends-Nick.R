@@ -43,4 +43,4 @@ statcast_data_2020_to_22 %>%
 statcast_data_2020_to_22 %>%
   filter(stand == "R", p_throws == "L") %>%
   ggspraychart("hc_x", "-hc_y", bin_size = 100, point_alpha = 0.25, frame = TRUE) +
-  facet_grid()
+  facet_wrap(~game_year)
