@@ -1,0 +1,88 @@
+---
+title: "Exploring-breakdowns"
+author: "Amber Potter"
+date: "7/18/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load `baseballr` & Other Packages
+
+```{r}
+library(baseballr)
+library(glue)
+library(tidyverse)
+```
+
+## Load Data
+
+```{r}
+statcast_data <- read_rds("data/statcast_data_clean.rds")
+```
+
+```{r}
+statcast_data_2021 <- statcast_data %>%
+  filter(game_year == "2021")
+
+statcast_data_2022 <- statcast_data %>%
+  filter(game_year == "2022")
+
+
+```
+
+# Statlines
+
+```{r}
+# player_statlines <- statcast_data_2022 %>%
+#   group_by(player_name) %>%
+#   statline_from_statcast(base = "pa")
+```
+
+# Player Summary Stats
+
+```{r}
+
+
+statcast_data_2021 %>%
+  group_by(player_name) %>%
+  filter(!events == "") %>%
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  summarize(stand, p_throws, if_fielding_alignment, of_fielding_alignment,
+            bb_rate = mean(walk),
+            k_rate = mean(strikeout),
+            babip = mean(babip_value),
+            woba = mean(woba_value)) %>%
+  select(-player_name) %>%
+  group_by(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  summarize(bb_rate = mean(bb_rate), 
+            k_rate = mean(k_rate), 
+            babip = mean(babip), 
+            woba = mean(woba)) %>%
+  ungroup() %>%
+  unique()
+
+```
+
+
+
+# 2021 Exploration
+
+```{r}
+statcast_data_2021 %>%
+  group_by(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  summarize(bbs = ,
+            ks = ,
+            babip = ,
+            woba_value = ,
+            
+              )
+```
+
+
+
