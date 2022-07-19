@@ -15,12 +15,20 @@ knitr::opts_chunk$set(echo = TRUE)
 library(baseballr)
 library(glue)
 library(tidyverse)
+library(knitr)
 ```
 
 ## Load Data
 
 ```{r}
-statcast_data <- read_rds("data/statcast_data_clean.rds")
+statcast_data <- read_rds("data/statcast_data_clean.rds") %>%
+  filter(!game_type %in% c("S", "E"))
+# remove nas conditionally
+
+
+statcast_data %>%
+  select(game_type) %>%
+  unique()
 ```
 
 ```{r}
@@ -142,4 +150,23 @@ statcast_data_2021 %>%
 ```
 
 
+
+```{r}
+statcast_data %>%
+  group_by(game_type) %>%
+  count(na_if = if_fielding_alignment == "") %>%
+  summarize(na_if, 
+            prop_na_if_shift = n / sum(n)) %>%
+  filter(is.na(na_if)) %>%
+  arrange(prop_na_if_shift) %>%
+  select(-na_if) %>%
+  mutate(game_type = case_when(game_type == "W" ~ "World Series",
+                               game_type == "L" ~ "League Championship",
+                               game_type == "F" ~ "Wild Card",
+                               game_type == "D" ~ "Divisional Series",
+                               game_type == "R" ~ "Regular Season",
+                               game_type == "S" ~ "Spring Training",
+                               game_type == "E" ~ "Exhibition")) %>%
+  kable(digits = 4, col.names = c("Game Type", "Percent Missing: IF Alignment"))
+```
 
