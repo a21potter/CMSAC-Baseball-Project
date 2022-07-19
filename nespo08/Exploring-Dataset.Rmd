@@ -15,14 +15,34 @@ knitr::opts_chunk$set(echo = TRUE)
 library(baseballr)
 library(tidyverse)
 
-statcast_data_all <- read_rds("data/statcast_data_clean.rds") %>%
-  janitor::clean_names()
+statcast_data_all <- read_rds("data/statcast_data_clean.rds")
 ```
-## TEMP: Filter for 2022
+
+## View proportion of NA values for each game_type
+```{r}
+# Infield shifting data
+statcast_data_all %>%
+  group_by(game_type) %>%
+  count(na_if = if_fielding_alignment == "") %>%
+  summarize(na_if, prop_na_if_shift = n/sum(n)) %>%
+  filter(is.na(na_if)) %>%
+  select(-na_if)
+
+# Outfield shifting data
+statcast_data_all %>%
+  group_by(game_type) %>%
+  count(na_of = of_fielding_alignment == "") %>%
+  summarize(na_of, prop_na_of_shift = n/sum(n)) %>%
+  filter(is.na(na_of)) %>%
+  select(-na_of)
+```
+
+## TEMP: Filter for 2022; filter out ST and E games and rows in shift columns with NA values
 
 ```{r}
 statcast_data_2022 <- statcast_data_all %>%
-  filter(game_year == "2022")
+  filter(game_year == "2022", !game_type %in% c("S","E"),
+         if_fielding_alignment != "" | of_fielding_alignment != "")
 ```
 
 
@@ -31,14 +51,14 @@ statcast_data_2022 <- statcast_data_all %>%
 ```{r}
 # Counts and percentages of variables by shift type and pitcher/batter matchups
 statcast_data_2022 %>%
-  filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
+  #filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
   #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
-  mutate(prob = n/sum(n))
+  mutate(prop = n/sum(n))
 
 # Counts and percentages of variables by combination of shift type and pitcher/batter matchups
 statcast_data_2022 %>%
-  filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
+  #filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
   mutate(if_fielding_alignment = case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
                                            if_fielding_alignment == "Strategic" ~ "Shift",
                                            if_fielding_alignment == "Standard" ~ "Standard")) %>%
@@ -47,13 +67,13 @@ statcast_data_2022 %>%
                                            of_fielding_alignment == "Standard" ~ "Standard")) %>%
   #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
-  mutate(prob = n/sum(n))
+  mutate(prop = n/sum(n))
 
 # Table by pitcher/batter matchups (regardless of shift type)
 statcast_data_2022 %>%
   #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   count(stand, p_throws) %>%
-  mutate(prob = n/sum(n))
+  mutate(prop = n/sum(n))
 
 # Prelim. spray charts
 # statcast_data_2020_to_22 %>%
@@ -68,6 +88,7 @@ statcast_data_2022 %>%
   filter(count > 480) %>% # ~ 480 at-bats
   count()
 ```
+
 ## Player Summary Stats
 
 ```{r}
