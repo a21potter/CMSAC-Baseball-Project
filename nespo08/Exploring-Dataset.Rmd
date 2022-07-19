@@ -30,14 +30,14 @@ statcast_data_2022 <- statcast_data_all %>%
 
 ```{r}
 # Counts and percentages of variables by shift type and pitcher/batter matchups
-statcast_data_2020_to_22 %>%
+statcast_data_2022 %>%
   filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
   #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   mutate(prob = n/sum(n))
 
 # Counts and percentages of variables by combination of shift type and pitcher/batter matchups
-statcast_data_2020_to_22 %>%
+statcast_data_2022 %>%
   filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
   mutate(if_fielding_alignment = case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
                                            if_fielding_alignment == "Strategic" ~ "Shift",
@@ -50,7 +50,7 @@ statcast_data_2020_to_22 %>%
   mutate(prob = n/sum(n))
 
 # Table by pitcher/batter matchups (regardless of shift type)
-statcast_data_2020_to_22 %>%
+statcast_data_2022 %>%
   #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   count(stand, p_throws) %>%
   mutate(prob = n/sum(n))
@@ -62,31 +62,95 @@ statcast_data_2020_to_22 %>%
 #   facet_wrap(~stand)
 
 # Group by player
-statcast_data_2020_to_22 %>%
+statcast_data_2022 %>%
   group_by(player_name, stand) %>%
   mutate(count = n()) %>%
   filter(count > 480) %>% # ~ 480 at-bats
   count()
 ```
-## Explore percentages
-```{r}
+## Player Summary Stats
 
-# Create new variable - avg woba, avg babip, prop of Ks, prop of BBs
+```{r}
 statcast_data_2022 %>%
   group_by(player_name) %>%
-  filter(events != "") %>%
+  filter(!events == "") %>%
   mutate(walk = case_when(events == "walk" ~ 1,
                           TRUE ~ 0),
-         strikeout = case_when(events = "strikeout" ~ 1,
+         strikeout = case_when(events == "strikeout" ~ 1,
                                TRUE ~ 0)) %>%
   summarize(stand, p_throws, if_fielding_alignment, of_fielding_alignment,
-            bb_rate = count(events == "walk") / nrow(),
-            k_rate = count(events == "strikeout") / nrow(),
+            bb_rate = mean(walk),
+            k_rate = mean(strikeout),
             babip = mean(babip_value),
-            woba = mean(woba_value))
+            woba = mean(woba_value)) %>%
+  select(-player_name) %>%
+  group_by(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  summarize(bb_rate = mean(bb_rate), 
+            k_rate = mean(k_rate), 
+            babip = mean(babip), 
+            woba = mean(woba)) %>%
+  ungroup() %>%
+  unique()
 
-# statcast_data_2022 %>%
-#   group_by(stand, p_throws, if_fielding_alignment, of_fielding_alignment)
-  
 ```
 
+## Check infield-in scenarios: runner on 3rd with less than 2 outs
+
+```{r}
+# View proportion of shifts involving above scenario
+statcast_data_2022 %>%
+  mutate(runner_on_third = case_when(!is.na(on_3b) & (outs_when_up < 2) ~ TRUE,
+                                      TRUE ~ FALSE)) %>%
+  group_by(if_fielding_alignment, of_fielding_alignment) %>%
+  summarize(prop = mean(runner_on_third)) 
+
+# Group by shift type WITHOUT filtering out infield-in
+statcast_data_2022 %>%
+  mutate(runner_on_third = case_when(on_3b == NA & outs_when_up == 2 ~ FALSE,
+                                      TRUE ~ TRUE)) %>%
+  group_by(player_name) %>%
+  filter(!events == "") %>%
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  summarize(stand, p_throws, if_fielding_alignment, of_fielding_alignment, runner_on_third,
+          bb_rate = mean(walk),
+          k_rate = mean(strikeout),
+          babip = mean(babip_value),
+          woba = mean(woba_value)) %>%
+  select(-player_name) %>%
+  filter(runner_on_third == TRUE) %>%
+  group_by(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  summarize(bb_rate = mean(bb_rate), 
+            k_rate = mean(k_rate), 
+            babip = mean(babip), 
+            woba = mean(woba)) %>%
+  ungroup() %>%
+  unique()
+
+# Group by shift type WITH filtering out infield-in
+statcast_data_2022 %>%
+  mutate(runner_on_third = case_when(on_3b == NA & outs_when_up == 2 ~ FALSE,
+                                      TRUE ~ TRUE)) %>%
+  group_by(player_name) %>%
+  filter(!events == "") %>%
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  summarize(stand, p_throws, if_fielding_alignment, of_fielding_alignment, runner_on_third,
+          bb_rate = mean(walk),
+          k_rate = mean(strikeout),
+          babip = mean(babip_value),
+          woba = mean(woba_value)) %>%
+  select(-player_name) %>%
+  filter(runner_on_third == FALSE) %>%
+  group_by(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  summarize(bb_rate = mean(bb_rate), 
+            k_rate = mean(k_rate), 
+            babip = mean(babip), 
+            woba = mean(woba)) %>%
+  ungroup() %>%
+  unique()
+```
