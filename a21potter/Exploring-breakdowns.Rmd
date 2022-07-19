@@ -71,17 +71,74 @@ statcast_data_2021 %>%
 
 
 
-# 2021 Exploration
+# Runner on 3rd with Less than 2 Outs
 
 ```{r}
 statcast_data_2021 %>%
+  mutate(runner_on_third = case_when(!is.na(on_3b) & (outs_when_up < 2) ~ TRUE,
+                                      TRUE ~ FALSE)) %>%
+  group_by(if_fielding_alignment, of_fielding_alignment) %>%
+  summarize(prop = mean(runner_on_third)) 
+
+
+
+
+
+
+
+
+
+
+
+
+statcast_data_2021 %>%
+  mutate(runner_on_third = case_when(on_3b == NA & outs_when_up == 2 ~ FALSE,
+                                      TRUE ~ TRUE)) %>%
+  group_by(player_name) %>%
+  filter(!events == "") %>%
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  summarize(stand, p_throws, if_fielding_alignment, of_fielding_alignment, runner_on_third,
+          bb_rate = mean(walk),
+          k_rate = mean(strikeout),
+          babip = mean(babip_value),
+          woba = mean(woba_value)) %>%
+  select(-player_name) %>%
+  filter(runner_on_third == TRUE) %>%
   group_by(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
-  summarize(bbs = ,
-            ks = ,
-            babip = ,
-            woba_value = ,
-            
-              )
+  summarize(bb_rate = mean(bb_rate), 
+            k_rate = mean(k_rate), 
+            babip = mean(babip), 
+            woba = mean(woba)) %>%
+  ungroup() %>%
+  unique()
+
+
+statcast_data_2021 %>%
+  mutate(runner_on_third = case_when(on_3b == NA & outs_when_up == 2 ~ FALSE,
+                                      TRUE ~ TRUE)) %>%
+  group_by(player_name) %>%
+  filter(!events == "") %>%
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  summarize(stand, p_throws, if_fielding_alignment, of_fielding_alignment, runner_on_third,
+          bb_rate = mean(walk),
+          k_rate = mean(strikeout),
+          babip = mean(babip_value),
+          woba = mean(woba_value)) %>%
+  select(-player_name) %>%
+  filter(runner_on_third == FALSE) %>%
+  group_by(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  summarize(bb_rate = mean(bb_rate), 
+            k_rate = mean(k_rate), 
+            babip = mean(babip), 
+            woba = mean(woba)) %>%
+  ungroup() %>%
+  unique()
 ```
 
 
