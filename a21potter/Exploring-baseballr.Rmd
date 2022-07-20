@@ -164,7 +164,7 @@ statcast_data_pitchers <- statcast_data_pitchers %>%
 
 
 ```{r}
-statcast_data_batters %>%
+statcast_data %>%
   filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
   #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
@@ -173,8 +173,8 @@ statcast_data_batters %>%
 
 
 ```{r}
-statcast_data_batters %>%
-  filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
+statcast_data %>%
+  #filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
   mutate(if_fielding_alignment = case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
                                            if_fielding_alignment == "Strategic" ~ "Shift",
                                            if_fielding_alignment == "Standard" ~ "Standard")) %>%
