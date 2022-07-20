@@ -176,10 +176,10 @@ statcast_data %>%
 statcast_data %>%
   #filter(!if_fielding_alignment == "", !of_fielding_alignment == "") %>%
   mutate(if_fielding_alignment = case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
-                                           if_fielding_alignment == "Strategic" ~ "Shift",
+                                           if_fielding_alignment == "Strategic" ~ "Standard",
                                            if_fielding_alignment == "Standard" ~ "Standard")) %>%
   mutate(of_fielding_alignment = case_when(of_fielding_alignment == "4th outfielder" ~ "Shift",
-                                           of_fielding_alignment == "Strategic" ~ "Shift",
+                                           of_fielding_alignment == "Strategic" ~ "Standard",
                                            of_fielding_alignment == "Standard" ~ "Standard")) %>%
   #select(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
