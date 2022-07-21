@@ -337,7 +337,7 @@ statcast_data %>%
   filter(game_year == 2022) %>%
   group_by(batter) %>%
   mutate(total_player_at_bats = length(which(events != ""))) %>%
-  filter(total_player_at_bats >= 50) %>%
+  filter(total_player_at_bats >= 100) %>%
   filter(!events == "") %>%
   mutate(walk = case_when(events == "walk" ~ 1,
                           TRUE ~ 0),
@@ -384,6 +384,3 @@ statcast_data %>%
   facet_wrap( ~ general_fielding_alignment,)
 ```
 
-
-
-woba is based on all players at bats, not just when player is shifted
