@@ -23,8 +23,7 @@ library(knitr)
 - Filtered out Exhibition and Spring Training games
 
 ```{r}
-statcast_data <- read_rds("data/statcast_data_clean.rds") %>%
-  filter(!game_type %in% c("S", "E"))
+statcast_data <- read_rds("data/statcast_data_clean.rds")
 ```
 
 ## Exploring Handedness Matchup Percentages
@@ -34,7 +33,6 @@ statcast_data %>%
   count(stand, p_throws) %>%
   mutate(prop = n/sum(n))
 ```
-
 
 ## Percent missingness of shift variable by game type
 
@@ -57,22 +55,22 @@ statcast_data %>%
   kable(digits = 4, col.names = c("Game Type", "Percent Missing: IF Alignment"))
 ```
 
+## Filter out Exhibition and ST games, and remove NA values from fielding alignments
 
-## Remove Fielding Arangement NAs
+- Based on percentage of missing values for each game type, we elected to exclude ST and Exhibition games. 
 
-- Based on percent missingness, all observations with NA for IF or OF fielding arangements are removed
+- Based on percentage of missing values for the regular season, all observations with NA for IF or OF fielding alignments are removed.
 
 ```{r}
 statcast_data <- statcast_data %>%
-  filter(if_fielding_alignment != "", of_fielding_alignment != "")
+  filter(if_fielding_alignment != "", of_fielding_alignment != "", !game_type %in% c("S", "E"))
 ```
-
 
 ## Shift vs Standard Alignment
 
 ### Runner on 3rd with Less than 2 Outs
 
-- Proportion of plays where these circumstances occur
+- Proportion of plays where this scenario occurs
 
 ```{r}
 statcast_data %>%
@@ -136,13 +134,30 @@ statcast_data %>%
 #   unique()
 ```
 
+## Threshold for plate appearances
+
+- We plotted the counts for number of at-bats
+
 ```{r}
 statcast_data %>%
   group_by(batter) %>%
   mutate(total_player_at_bats = length(which(events != ""))) %>%
   ggplot() +
   geom_histogram(aes(x = total_player_at_bats))
+```
 
+
+## Statistics for infield-in scenarios
+
+-Strikeout rate
+
+-Walk rate
+
+-BABIP
+
+-WOBA
+
+```{r}
 statcast_data %>%
   # situation identifier
   mutate(runner_on_third = case_when(on_3b != "" & outs_when_up < 2 ~ TRUE,
@@ -175,10 +190,10 @@ statcast_data %>%
           k_rate = mean(k_rate), 
           babip = mean(babip), 
           woba = mean(woba))
-
 ```
 
-- Conf. Int.
+
+- Confidence Intervals for infield-in scenarios
 
 ```{r}
 runner_on_third_data <- statcast_data %>%
@@ -260,7 +275,6 @@ statcast_data <- statcast_data %>%
                        of_fielding_alignment == "Standard" ~ "Standard"))
 ```
 
-
 - Viewing percentages of general fielding arangements based on handedness
 
 ```{r}
@@ -282,9 +296,6 @@ statcast_data %>%
 ## Average Summary Stats within handedness and fielding alignment groups
 
 ```{r}
-
-
-
 statcast_data %>%
   group_by(batter) %>%
   mutate(total_player_at_bats = length(which(events != ""))) %>%
@@ -308,6 +319,5 @@ statcast_data %>%
             babip = mean(babip), 
             woba = mean(woba),
             .groups = "drop")
-
 ```
 
