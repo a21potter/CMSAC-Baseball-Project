@@ -178,6 +178,70 @@ statcast_data %>%
 
 ```
 
+- Conf. Int.
+
+```{r}
+runner_on_third_data <- statcast_data %>%
+  # situation identifier
+  mutate(runner_on_third = case_when(on_3b != "" & outs_when_up < 2 ~ TRUE,
+                                      TRUE ~ FALSE)) %>%
+  # filtering for 400+ at bats
+  group_by(batter) %>%
+  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  filter(total_player_at_bats >= 400) %>%
+    # effectively counting each at bat once
+  filter(!events == "") %>%
+  # was the outcome of at bat a walk or strikeout
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  # summarizing statistics by batter in and out of this situation
+  group_by(batter, runner_on_third) %>%
+  summarize(runner_on_third,
+            bb_rate = mean(walk),
+        k_rate = mean(strikeout),
+        babip = mean(babip_value),
+        woba = mean(woba_value),
+        .groups = "drop") %>%
+  # only including each batter once in and out of this situation
+  unique() %>%
+  filter(runner_on_third == TRUE)
+
+no_runner_on_third_data <- statcast_data %>%
+  # situation identifier
+  mutate(runner_on_third = case_when(on_3b != "" & outs_when_up < 2 ~ TRUE,
+                                      TRUE ~ FALSE)) %>%
+  # filtering for 400+ at bats
+  group_by(batter) %>%
+  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  filter(total_player_at_bats >= 400) %>%
+    # effectively counting each at bat once
+  filter(!events == "") %>%
+  # was the outcome of at bat a walk or strikeout
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  # summarizing statistics by batter in and out of this situation
+  group_by(batter, runner_on_third) %>%
+  summarize(runner_on_third,
+            bb_rate = mean(walk),
+        k_rate = mean(strikeout),
+        babip = mean(babip_value),
+        woba = mean(woba_value),
+        .groups = "drop") %>%
+  # only including each batter once in and out of this situation
+  unique() %>%
+  filter(runner_on_third == FALSE)
+
+runner_on_third_conf_int <- lm(woba ~ 1, runner_on_third_data)
+confint(runner_on_third_conf_int, level = 0.95)
+
+no_runner_on_third_conf_int <- lm(woba ~ 1, no_runner_on_third_data)
+confint(no_runner_on_third_conf_int, level = 0.95)
+```
+
 
 ## Percentages of standard and shifted IF and OF arangements based on batter and pitcher handedness
 
