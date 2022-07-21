@@ -262,6 +262,15 @@ confint(no_runner_on_third_conf_int, level = 0.95)
 
 ```{r}
 statcast_data <- statcast_data %>%
+  mutate(general_fielding_alignment = 
+           case_when(if_fielding_alignment == "Infield shift" |
+                       of_fielding_alignment == "4th outfielder" |
+                       of_fielding_alignment == "Extreme outfield shift" ~
+                       "Shift",
+                     TRUE ~ "Standard"))
+
+
+statcast_data <- statcast_data %>%
   mutate(if_fielding_alignment = 
            case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
                      if_fielding_alignment == "Strategic" |
@@ -303,7 +312,8 @@ statcast_data %>%
                           TRUE ~ 0),
          strikeout = case_when(events == "strikeout" ~ 1,
                                TRUE ~ 0)) %>%
-  summarize(stand, p_throws, if_fielding_alignment, of_fielding_alignment,
+  group_by(batter, general_fielding_alignment) %>%
+  summarize(stand, p_throws,
             bb_rate = mean(walk),
             k_rate = mean(strikeout),
             babip = mean(babip_value),
@@ -311,7 +321,7 @@ statcast_data %>%
             .groups = "drop") %>% 
   unique() %>%
   select(-batter) %>%
-  group_by(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  group_by(stand, general_fielding_alignment) %>%
   summarize(bb_rate = mean(bb_rate), 
             k_rate = mean(k_rate), 
             babip = mean(babip), 
@@ -319,3 +329,30 @@ statcast_data %>%
             .groups = "drop")
 ```
 
+
+
+## Distribution of WOBA for different fielding alignment
+
+
+```{r}
+statcast_data %>%
+  group_by(batter) %>%
+  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  filter(total_player_at_bats >= 400) %>%
+  filter(!events == "") %>%
+  group_by(batter, general_fielding_alignment) %>%
+  summarize(stand, p_throws,
+            woba = mean(woba_value),
+            .groups = "drop") %>% 
+  unique() %>%
+  group_by(general_fielding_alignment) %>%
+  summarize(woba = mean(woba),
+            .groups = "drop")
+  ggplot(aes(x = woba)) +
+  geom_histogram() +
+  facet_wrap( ~ general_fielding_alignment,)
+```
+
+
+
+woba is based on all players at bats, not just when player is shifted

@@ -170,3 +170,4 @@ statcast_data %>%
   kable(digits = 4, col.names = c("Game Type", "Percent Missing: IF Alignment"))
 ```
 
+
