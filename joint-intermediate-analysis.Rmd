@@ -20,8 +20,6 @@ library(knitr)
 
 ## Load Data
 
-- Filtered out Exhibition and Spring Training games
-
 ```{r}
 statcast_data <- read_rds("data/statcast_data_clean.rds")
 ```
