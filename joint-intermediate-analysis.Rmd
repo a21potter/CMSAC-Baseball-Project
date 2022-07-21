@@ -300,7 +300,7 @@ statcast_data %>%
 
 - WOBA
 
-## Average Summary Stats within handedness and fielding alignment groups
+## Average Summary Stats within batter handedness and shift (since 2015)
 
 ```{r}
 statcast_data %>%
@@ -326,9 +326,40 @@ statcast_data %>%
             k_rate = mean(k_rate), 
             babip = mean(babip), 
             woba = mean(woba),
-            .groups = "drop")
+            .groups = "drop") %>%
+  kable()
 ```
 
+## Average Summary Stats within batter handedness and shift (2022)
+
+```{r}
+statcast_data %>%
+  filter(game_year == 2022) %>%
+  group_by(batter) %>%
+  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  filter(total_player_at_bats >= 50) %>%
+  filter(!events == "") %>%
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  group_by(batter, general_fielding_alignment) %>%
+  summarize(stand, p_throws,
+            bb_rate = mean(walk),
+            k_rate = mean(strikeout),
+            babip = mean(babip_value),
+            woba = mean(woba_value),
+            .groups = "drop") %>% 
+  unique() %>%
+  select(-batter) %>%
+  group_by(stand, general_fielding_alignment) %>%
+  summarize(bb_rate = mean(bb_rate), 
+            k_rate = mean(k_rate), 
+            babip = mean(babip), 
+            woba = mean(woba),
+            .groups = "drop") %>%
+  kable()
+```
 
 
 ## Distribution of WOBA for different fielding alignment
