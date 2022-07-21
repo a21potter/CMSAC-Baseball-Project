@@ -32,6 +32,17 @@ statcast_data %>%
   mutate(prop = n/sum(n))
 ```
 
+## Exploring Proportion of Shift Types
+
+- Includes NA values
+
+```{r}
+statcast_data %>%
+count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  mutate(prop = n/sum(n))
+```
+
+
 ## Percent missingness of shift variable by game type
 
 ```{r}
@@ -53,15 +64,18 @@ statcast_data %>%
   kable(digits = 4, col.names = c("Game Type", "Percent Missing: IF Alignment"))
 ```
 
-## Filter out Exhibition and ST games, and remove NA values from fielding alignments
+## Filter out Exhibition games, ST games, Extreme Outfield Shift, and NA values from fielding alignments
 
 - Based on percentage of missing values for each game type, we elected to exclude ST and Exhibition games. 
 
 - Based on percentage of missing values for the regular season, all observations with NA for IF or OF fielding alignments are removed.
 
+- Based on limited values for the extreme outfield shift, all observations with this alignment for IF or OF fielding alignments are removed.
+
 ```{r}
 statcast_data <- statcast_data %>%
-  filter(if_fielding_alignment != "", of_fielding_alignment != "", !game_type %in% c("S", "E"))
+  filter(if_fielding_alignment != "", !of_fielding_alignment %in% c("", "Extreme outfield shift"), 
+         !game_type %in% c("S", "E"))
 ```
 
 ## Shift vs Standard Alignment
@@ -264,9 +278,7 @@ confint(no_runner_on_third_conf_int, level = 0.95)
 statcast_data <- statcast_data %>%
   mutate(general_fielding_alignment = 
            case_when(if_fielding_alignment == "Infield shift" |
-                       of_fielding_alignment == "4th outfielder" |
-                       of_fielding_alignment == "Extreme outfield shift" ~
-                       "Shift",
+                       of_fielding_alignment == "4th outfielder" ~ "Shift",
                      TRUE ~ "Standard"))
 
 
@@ -276,8 +288,7 @@ statcast_data <- statcast_data %>%
                      if_fielding_alignment == "Strategic" |
                        if_fielding_alignment == "Standard"~ "Standard")) %>%
   mutate(of_fielding_alignment = 
-           case_when(of_fielding_alignment == "4th outfielder" |
-                       of_fielding_alignment == "Extreme outfield shift"~ "Shift",
+           case_when(of_fielding_alignment == "4th outfielder" ~ "Shift",
                      of_fielding_alignment == "Strategic" |
                        of_fielding_alignment == "Standard" ~ "Standard"))
 ```
