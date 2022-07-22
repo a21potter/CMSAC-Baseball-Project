@@ -1,0 +1,332 @@
+---
+title: "joint-progress-checkin"
+author: "Nicholas Esposito and Amber Potter"
+date: "7/21/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load `baseballr` & Other Packages
+
+```{r}
+library(baseballr)
+library(glue)
+library(tidyverse)
+library(knitr)
+```
+
+## Load Data
+
+```{r}
+statcast_data <- read_rds("data/statcast_data_clean.rds")
+```
+
+## Exploring Handedness Matchup Percentages
+
+```{r}
+statcast_data %>%
+  count(stand, p_throws) %>%
+  mutate(prop = n/sum(n))
+```
+
+## Exploring Proportion of Shift Types
+
+- Includes NA values
+
+```{r}
+statcast_data %>%
+count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  mutate(prop = n/sum(n))
+```
+
+## Percent missingness of shift variable by game type
+
+```{r}
+statcast_data %>%
+  group_by(game_type) %>%
+  count(na_if = if_fielding_alignment == "") %>%
+  summarize(na_if, 
+            prop_na_if_shift = n / sum(n)) %>%
+  filter(is.na(na_if)) %>%
+  arrange(prop_na_if_shift) %>%
+  select(-na_if) %>%
+  mutate(game_type = case_when(game_type == "W" ~ "World Series",
+                               game_type == "L" ~ "League Championship",
+                               game_type == "F" ~ "Wild Card",
+                               game_type == "D" ~ "Divisional Series",
+                               game_type == "R" ~ "Regular Season",
+                               game_type == "S" ~ "Spring Training",
+                               game_type == "E" ~ "Exhibition")) %>%
+  kable(digits = 4, col.names = c("Game Type", "Percent Missing: IF Alignment"))
+```
+
+## Filter out Exhibition games, ST games, Extreme Outfield Shift, and NA values from fielding alignments
+
+- Based on percentage of missing values for each game type, we elected to exclude ST and Exhibition games. 
+
+- Based on percentage of missing values for the regular season, all observations with NA for IF or OF fielding alignments are removed.
+
+- Based on limited values for the extreme outfield shift, all observations with this alignment for IF or OF fielding alignments are removed.
+
+```{r}
+statcast_data <- statcast_data %>%
+  filter(if_fielding_alignment != "", !of_fielding_alignment %in% c("", "Extreme outfield shift"), 
+         !game_type %in% c("S", "E"))
+```
+
+## Shift vs Standard Alignment
+
+### Runner on 3rd with Less than 2 Outs
+
+- Proportion of plays where this scenario occurs
+
+```{r}
+statcast_data %>%
+  mutate(runner_on_third = case_when(!is.na(on_3b) & (outs_when_up < 2) ~ TRUE,
+                                      TRUE ~ FALSE)) %>%
+  group_by(if_fielding_alignment, of_fielding_alignment) %>%
+  summarize(prop = mean(runner_on_third)) 
+```
+
+## Statistics for infield-in scenarios
+
+-Strikeout rate
+
+-Walk rate
+
+-BABIP
+
+-WOBA
+
+```{r}
+statcast_data %>%
+  # situation identifier
+  mutate(runner_on_third = case_when(on_3b != "" & outs_when_up < 2 ~ TRUE,
+                                      TRUE ~ FALSE)) %>%
+  # filtering for 400+ at bats
+  group_by(batter) %>%
+  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  filter(total_player_at_bats >= 400) %>%
+  
+  # effectively counting each at bat once
+  filter(!events == "") %>%
+  # was the outcome of at bat a walk or strikeout
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  # summarizing statistics by batter in and out of this situation
+  group_by(batter, runner_on_third) %>%
+  summarize(runner_on_third,
+            bb_rate = mean(walk),
+        k_rate = mean(strikeout),
+        babip = mean(babip_value),
+        woba = mean(woba_value),
+        .groups = "drop") %>%
+  # only including each batter once in and out of this situation
+  unique() %>%
+  # summarizing offensive stats based on runner on third scenarios
+  group_by(runner_on_third) %>%
+  summarize(bb_rate = mean(bb_rate), 
+          k_rate = mean(k_rate), 
+          babip = mean(babip), 
+          woba = mean(woba))
+```
+
+
+- Confidence Intervals for infield-in scenarios
+
+```{r}
+runner_on_third_data <- statcast_data %>%
+  # situation identifier
+  mutate(runner_on_third = case_when(on_3b != "" & outs_when_up < 2 ~ TRUE,
+                                      TRUE ~ FALSE)) %>%
+  # filtering for 400+ at bats
+  group_by(batter) %>%
+  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  filter(total_player_at_bats >= 400) %>%
+    # effectively counting each at bat once
+  filter(!events == "") %>%
+  # was the outcome of at bat a walk or strikeout
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  # summarizing statistics by batter in and out of this situation
+  group_by(batter, runner_on_third) %>%
+  summarize(runner_on_third,
+            bb_rate = mean(walk),
+        k_rate = mean(strikeout),
+        babip = mean(babip_value),
+        woba = mean(woba_value),
+        .groups = "drop") %>%
+  # only including each batter once in and out of this situation
+  unique() %>%
+  filter(runner_on_third == TRUE)
+
+no_runner_on_third_data <- statcast_data %>%
+  # situation identifier
+  mutate(runner_on_third = case_when(on_3b != "" & outs_when_up < 2 ~ TRUE,
+                                      TRUE ~ FALSE)) %>%
+  # filtering for 400+ at bats
+  group_by(batter) %>%
+  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  filter(total_player_at_bats >= 400) %>%
+    # effectively counting each at bat once
+  filter(!events == "") %>%
+  # was the outcome of at bat a walk or strikeout
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  # summarizing statistics by batter in and out of this situation
+  group_by(batter, runner_on_third) %>%
+  summarize(runner_on_third,
+            bb_rate = mean(walk),
+        k_rate = mean(strikeout),
+        babip = mean(babip_value),
+        woba = mean(woba_value),
+        .groups = "drop") %>%
+  # only including each batter once in and out of this situation
+  unique() %>%
+  filter(runner_on_third == FALSE)
+
+runner_on_third_conf_int <- lm(woba ~ 1, runner_on_third_data)
+confint(runner_on_third_conf_int, level = 0.95)
+
+no_runner_on_third_conf_int <- lm(woba ~ 1, no_runner_on_third_data)
+confint(no_runner_on_third_conf_int, level = 0.95)
+```
+
+## Filter out all infield-in scenarios (runner on third, less than two outs)
+
+- EXPLAIN CONTEXTUAL REASONING
+
+```{r}
+statcast_data <- statcast_data %>%
+  filter(!(on_3b != "" & outs_when_up < 2))
+```
+
+## Percentages of standard and shifted IF and OF arangements based on batter and pitcher handedness
+
+- Grouping into general shifted and standard categories
+
+```{r}
+statcast_data <- statcast_data %>%
+  mutate(general_fielding_alignment = 
+           case_when(if_fielding_alignment == "Infield shift" |
+                       of_fielding_alignment == "4th outfielder" ~ "Shift",
+                     TRUE ~ "Standard"))
+
+
+statcast_data <- statcast_data %>%
+  mutate(if_fielding_alignment = 
+           case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
+                     if_fielding_alignment == "Strategic" |
+                       if_fielding_alignment == "Standard"~ "Standard")) %>%
+  mutate(of_fielding_alignment = 
+           case_when(of_fielding_alignment == "4th outfielder" ~ "Shift",
+                     of_fielding_alignment == "Strategic" |
+                       of_fielding_alignment == "Standard" ~ "Standard"))
+```
+
+- Viewing percentages of general fielding arangements based on handedness
+
+```{r}
+statcast_data %>%
+  count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
+  mutate(prop = n/sum(n))
+```
+
+## Creating Summary Statistics
+
+- Strikeout rate
+
+- Walk rate
+
+- BABIP
+
+- WOBA
+
+## Average Summary Stats within batter handedness and shift (since 2015)
+
+```{r}
+statcast_data %>%
+  group_by(batter) %>%
+  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  filter(total_player_at_bats >= 400) %>%
+  filter(!events == "") %>%
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  group_by(batter, general_fielding_alignment) %>%
+  summarize(stand, p_throws,
+            bb_rate = mean(walk),
+            k_rate = mean(strikeout),
+            babip = mean(babip_value),
+            woba = mean(woba_value),
+            .groups = "drop") %>% 
+  unique() %>%
+  select(-batter) %>%
+  group_by(stand, general_fielding_alignment) %>%
+  summarize(bb_rate = mean(bb_rate), 
+            k_rate = mean(k_rate), 
+            babip = mean(babip), 
+            woba = mean(woba),
+            .groups = "drop") %>%
+  kable()
+```
+
+## Average Summary Stats within batter handedness and shift (2022)
+
+```{r}
+statcast_data %>%
+  filter(game_year == 2022) %>%
+  group_by(batter) %>%
+  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  filter(total_player_at_bats >= 100) %>%
+  filter(!events == "") %>%
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  group_by(batter, general_fielding_alignment) %>%
+  summarize(stand, p_throws,
+            bb_rate = mean(walk),
+            k_rate = mean(strikeout),
+            babip = mean(babip_value),
+            woba = mean(woba_value),
+            .groups = "drop") %>% 
+  unique() %>%
+  select(-batter) %>%
+  group_by(stand, general_fielding_alignment) %>%
+  summarize(bb_rate = mean(bb_rate), 
+            k_rate = mean(k_rate), 
+            babip = mean(babip), 
+            woba = mean(woba),
+            .groups = "drop") %>%
+  kable()
+```
+
+## Distribution of WOBA for different fielding alignment
+
+```{r}
+statcast_data %>%
+  group_by(batter) %>%
+  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  filter(total_player_at_bats >= 400) %>%
+  filter(!events == "") %>%
+  group_by(batter, general_fielding_alignment) %>%
+  summarize(stand, p_throws,
+            woba = mean(woba_value),
+            .groups = "drop") %>% 
+  unique() %>%
+  group_by(general_fielding_alignment) %>%
+  ggplot(aes(x = woba)) +
+  geom_histogram() +
+  facet_wrap( ~ general_fielding_alignment)
+```
