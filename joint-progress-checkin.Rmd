@@ -1,5 +1,5 @@
 ---
-title: "Determining the Critical Influences on the Offensive Outcomes of Shifted Infield At-Bats"
+title: "Determining the Critical Influences on the Offensive Outcomes of Shifted At-Bats"
 author: "Nicholas Esposito and Amber Potter"
 date: "7/21/2022"
 output: html_document
