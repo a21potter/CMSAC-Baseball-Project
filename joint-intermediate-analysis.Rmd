@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ## Load `baseballr` & Other Packages
@@ -22,7 +22,25 @@ library(knitr)
 
 ```{r}
 statcast_data <- read_rds("data/statcast_data_clean.rds")
+
+
+names(statcast_data)[1] <- 'pitch_id'
 ```
+
+## End of at bat column
+
+
+```{r}
+statcast_data <- statcast_data %>%
+  group_by(game_id, batter, at_bat_number) %>%
+  #arrange(pitch_number) %>%
+  mutate(pitch_count = max(pitch_number),
+         last_pitch_of_at_bat = case_when(pitch_number == pitch_count ~ TRUE,
+                                          TRUE ~ FALSE)) %>%
+  ungroup()
+
+```
+
 
 ## Exploring Handedness Matchup Percentages
 
@@ -88,6 +106,7 @@ statcast_data <- statcast_data %>%
 statcast_data %>%
   mutate(runner_on_third = case_when(!is.na(on_3b) & (outs_when_up < 2) ~ TRUE,
                                       TRUE ~ FALSE)) %>%
+  filter(last_pitch_of_at_bat == TRUE) %>%
   group_by(if_fielding_alignment, of_fielding_alignment) %>%
   summarize(prop = mean(runner_on_third)) 
 ```
@@ -153,7 +172,7 @@ statcast_data %>%
 ```{r}
 statcast_data %>%
   group_by(batter) %>%
-  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat != ""))) %>%
   ggplot() +
   geom_histogram(aes(x = total_player_at_bats))
 ```
@@ -169,39 +188,56 @@ statcast_data %>%
 
 -WOBA
 
+case_when(babip_value == "" | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | des != "hit_into_play" ~ NA,
+                                            TRUE ~
+
 ```{r}
 statcast_data %>%
   # situation identifier
   mutate(runner_on_third = case_when(on_3b != "" & outs_when_up < 2 ~ TRUE,
                                       TRUE ~ FALSE)) %>%
+  mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
+                                          TRUE ~ babip_value)) %>%
   # filtering for 400+ at bats
-  group_by(batter) %>%
-  mutate(total_player_at_bats = length(which(events != ""))) %>%
-  filter(total_player_at_bats >= 400) %>%
+  group_by(game_year, batter) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
+  filter(total_player_at_bats >= 200) %>%
   
   # effectively counting each at bat once
-  filter(!events == "") %>%
+  filter(last_pitch_of_at_bat == TRUE) %>%
   # was the outcome of at bat a walk or strikeout
   mutate(walk = case_when(events == "walk" ~ 1,
                           TRUE ~ 0),
          strikeout = case_when(events == "strikeout" ~ 1,
                                TRUE ~ 0)) %>%
   # summarizing statistics by batter in and out of this situation
-  group_by(batter, runner_on_third) %>%
+  group_by(game_year, batter, runner_on_third) %>%
   summarize(runner_on_third,
             bb_rate = mean(walk),
         k_rate = mean(strikeout),
-        babip = mean(babip_value),
-        woba = mean(woba_value),
+        babip = mean(babip_value_with_NAs, na.rm = TRUE),
+        woba = mean(woba_value, na.rm = TRUE),
         .groups = "drop") %>%
   # only including each batter once in and out of this situation
   unique() %>%
   # summarizing offensive stats based on runner on third scenarios
-  group_by(runner_on_third) %>%
+  group_by(game_year, runner_on_third) %>%
   summarize(bb_rate = mean(bb_rate), 
           k_rate = mean(k_rate), 
           babip = mean(babip), 
           woba = mean(woba))
+```
+
+
+```{r}
+statcast_data %>%
+  filter(events == "sac_bunt")
+
+statcast_data %>%
+  select(description) %>%
+  distinct()
+
+unique(statcast_data$events)
 ```
 
 
@@ -212,19 +248,21 @@ runner_on_third_data <- statcast_data %>%
   # situation identifier
   mutate(runner_on_third = case_when(on_3b != "" & outs_when_up < 2 ~ TRUE,
                                       TRUE ~ FALSE)) %>%
+    mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
+                                          TRUE ~ babip_value)) %>%
   # filtering for 400+ at bats
-  group_by(batter) %>%
-  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  group_by(game_year, batter) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
   filter(total_player_at_bats >= 400) %>%
     # effectively counting each at bat once
-  filter(!events == "") %>%
+  filter(last_pitch_of_at_bat == TRUE) %>%
   # was the outcome of at bat a walk or strikeout
   mutate(walk = case_when(events == "walk" ~ 1,
                           TRUE ~ 0),
          strikeout = case_when(events == "strikeout" ~ 1,
                                TRUE ~ 0)) %>%
   # summarizing statistics by batter in and out of this situation
-  group_by(batter, runner_on_third) %>%
+  group_by(game_year, batter, runner_on_third) %>%
   summarize(runner_on_third,
             bb_rate = mean(walk),
         k_rate = mean(strikeout),
@@ -239,19 +277,21 @@ no_runner_on_third_data <- statcast_data %>%
   # situation identifier
   mutate(runner_on_third = case_when(on_3b != "" & outs_when_up < 2 ~ TRUE,
                                       TRUE ~ FALSE)) %>%
+    mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
+                                          TRUE ~ babip_value)) %>%
   # filtering for 400+ at bats
-  group_by(batter) %>%
-  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  group_by(game_year, batter) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
   filter(total_player_at_bats >= 400) %>%
     # effectively counting each at bat once
-  filter(!events == "") %>%
+  filter(last_pitch_of_at_bat == TRUE) %>%
   # was the outcome of at bat a walk or strikeout
   mutate(walk = case_when(events == "walk" ~ 1,
                           TRUE ~ 0),
          strikeout = case_when(events == "strikeout" ~ 1,
                                TRUE ~ 0)) %>%
   # summarizing statistics by batter in and out of this situation
-  group_by(batter, runner_on_third) %>%
+  group_by(game_year, batter, runner_on_third) %>%
   summarize(runner_on_third,
             bb_rate = mean(walk),
         k_rate = mean(strikeout),
@@ -293,7 +333,7 @@ statcast_data <- statcast_data %>%
                        of_fielding_alignment == "Standard" ~ "Standard"))
 ```
 
-- Viewing percentages of general fielding arangements based on handedness
+- Viewing percentages of general fielding arrangements based on handedness
 
 ```{r}
 statcast_data %>%
@@ -315,28 +355,29 @@ statcast_data %>%
 
 ```{r}
 statcast_data %>%
-  group_by(batter) %>%
-  mutate(total_player_at_bats = length(which(events != ""))) %>%
-  filter(total_player_at_bats >= 400) %>%
-  filter(!events == "") %>%
+  group_by(game_year, batter) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
+  mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
+                                          TRUE ~ babip_value)) %>%
+  filter(total_player_at_bats >= 200) %>%
+  filter(last_pitch_of_at_bat == TRUE) %>%
   mutate(walk = case_when(events == "walk" ~ 1,
                           TRUE ~ 0),
          strikeout = case_when(events == "strikeout" ~ 1,
                                TRUE ~ 0)) %>%
-  group_by(batter, general_fielding_alignment) %>%
-  summarize(stand, p_throws,
-            bb_rate = mean(walk),
+  group_by(game_year, batter, stand, if_fielding_alignment) %>%
+  summarize(bb_rate = mean(walk),
             k_rate = mean(strikeout),
-            babip = mean(babip_value),
-            woba = mean(woba_value),
+            babip = mean(babip_value_with_NAs, na.rm = TRUE),
+            woba = mean(woba_value, na.rm = TRUE),
             .groups = "drop") %>% 
   unique() %>%
   select(-batter) %>%
-  group_by(stand, general_fielding_alignment) %>%
+  group_by(game_year, stand, if_fielding_alignment) %>%
   summarize(bb_rate = mean(bb_rate), 
             k_rate = mean(k_rate), 
-            babip = mean(babip), 
-            woba = mean(woba),
+            babip = mean(babip, na.rm = TRUE), 
+            woba = mean(woba, na.rm = TRUE),
             .groups = "drop") %>%
   kable()
 ```
@@ -347,9 +388,9 @@ statcast_data %>%
 statcast_data %>%
   filter(game_year == 2022) %>%
   group_by(batter) %>%
-  mutate(total_player_at_bats = length(which(events != ""))) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
   filter(total_player_at_bats >= 100) %>%
-  filter(!events == "") %>%
+  filter(last_pitch_of_at_bat == TRUE) %>%
   mutate(walk = case_when(events == "walk" ~ 1,
                           TRUE ~ 0),
          strikeout = case_when(events == "strikeout" ~ 1,
@@ -378,19 +419,33 @@ statcast_data %>%
 
 ```{r}
 statcast_data %>%
-  group_by(batter) %>%
-  mutate(total_player_at_bats = length(which(events != ""))) %>%
-  filter(total_player_at_bats >= 400) %>%
-  filter(!events == "") %>%
-  group_by(batter, general_fielding_alignment) %>%
+  group_by(game_year, batter) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
+  filter(total_player_at_bats >= 200) %>%
+  filter(last_pitch_of_at_bat == TRUE) %>%
+  group_by(game_year, batter, if_fielding_alignment) %>%
   summarize(stand, p_throws,
-            woba = mean(woba_value),
+            woba = mean(woba_value, na.rm = TRUE),
             .groups = "drop") %>% 
   unique() %>%
-  group_by(general_fielding_alignment) %>%
   ggplot(aes(x = woba)) +
   geom_histogram() +
-  facet_wrap( ~ general_fielding_alignment)
+  facet_grid(game_year ~ if_fielding_alignment) +
+  labs(x = "wOBA",
+       y = "Frequency",
+       title = "wOBA Distributions have Greater Variability when Against the Shift") +
+  theme_minimal()
 ```
+
+## woba over time
+
+```{r}
+statcast_data %>%
+  group_by(year, batter) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
+  filter(total_player_at_bats >= 200) %>%
+```
+
+
 
 ## Modeling (Planning)
