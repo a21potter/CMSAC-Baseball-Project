@@ -369,3 +369,11 @@ statcast_data %>%
 - We would like to thank both Dr. Adam Brodie and Dr. Ron Yurko for their help and guidance throughout this process. 
 
 ## References
+
+https://batflipsandnerds.com/2021/02/03/the-psychology-of-the-infield-shift/
+
+https://billpetti.github.io/baseballr/reference/index.html
+
+https://billpetti.github.io/baseballr/
+
+https://www.mlb.com/glossary/statcast/shifts
