@@ -6,8 +6,26 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
+
+# Determining the Critical Influences on the Offensive Outcomes of Shifted At-Bats
+
+## Introduction
+
+Through our work, we hope to:
+
+- Gain an understanding of the situations in which shifting occurs
+- Analyze the differences within each subcategory of shifting 
+- Determine the influential factors involved in deciding to shift and the offensive outcomes of shifted plays.
+
+We also have two main subquestions that will guide of work:
+- What factors contribute to the changes in offensive outcomes, based on batter handedness, in shifted situations? 
+- Based on these factors, when is it most advantageous to shift?
+
+By looking into this, our overarching goal is to provide insight to aid in-game and season-long decisions and to better understand the impact of shifting on the game of baseball.
+
+## Data
 
 ## Load `baseballr` & Other Packages
 
@@ -49,11 +67,11 @@ statcast_data %>%
   group_by(game_type) %>%
   count(na_if = if_fielding_alignment == "") %>%
   summarize(na_if, 
-            prop_na_if_shift = n / sum(n)) %>%
+            prop_na_if_shift = n / sum(n)) %>% # Prop. of NA shifts for infield alignments
   filter(is.na(na_if)) %>%
   arrange(prop_na_if_shift) %>%
-  select(-na_if) %>%
-  mutate(game_type = case_when(game_type == "W" ~ "World Series",
+  select(-na_if) %>% 
+  mutate(game_type = case_when(game_type == "W" ~ "World Series", 
                                game_type == "L" ~ "League Championship",
                                game_type == "F" ~ "Wild Card",
                                game_type == "D" ~ "Divisional Series",
@@ -74,7 +92,7 @@ statcast_data %>%
 ```{r}
 statcast_data <- statcast_data %>%
   filter(if_fielding_alignment != "", !of_fielding_alignment %in% c("", "Extreme outfield shift"), 
-         !game_type %in% c("S", "E"))
+         !game_type %in% c("S", "E")) # Filter NAs, ex. outfield shift, and ST/E games
 ```
 
 ## Shift vs Standard Alignment
@@ -88,7 +106,7 @@ statcast_data %>%
   mutate(runner_on_third = case_when(!is.na(on_3b) & (outs_when_up < 2) ~ TRUE,
                                       TRUE ~ FALSE)) %>%
   group_by(if_fielding_alignment, of_fielding_alignment) %>%
-  summarize(prop = mean(runner_on_third)) 
+  summarize(prop = mean(runner_on_third)) # Prop. for runners on third in each shifting scenario
 ```
 
 ## Statistics for infield-in scenarios
@@ -203,8 +221,6 @@ confint(no_runner_on_third_conf_int, level = 0.95)
 
 ## Filter out all infield-in scenarios (runner on third, less than two outs)
 
-- EXPLAIN CONTEXTUAL REASONING
-
 ```{r}
 statcast_data <- statcast_data %>%
   filter(!(on_3b != "" & outs_when_up < 2))
@@ -221,7 +237,7 @@ statcast_data <- statcast_data %>%
                        of_fielding_alignment == "4th outfielder" ~ "Shift",
                      TRUE ~ "Standard"))
 
-
+# Reduce shifting subcategories to Standard vs Shift
 statcast_data <- statcast_data %>%
   mutate(if_fielding_alignment = 
            case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
@@ -238,7 +254,7 @@ statcast_data <- statcast_data %>%
 ```{r}
 statcast_data %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
-  mutate(prop = n/sum(n))
+  mutate(prop = n/sum(n)) 
 ```
 
 ## Creating Summary Statistics
@@ -330,3 +346,26 @@ statcast_data %>%
   geom_histogram() +
   facet_wrap( ~ general_fielding_alignment)
 ```
+
+## Methods
+
+- Our primary tool for analysis is mixed effects modeling, as this approach will provide the best   insight on what factors contribute to the changes in offensive outcome. The wOBA statistic     (weighted on-base average) is very similar to on-base percentage, although it accounts for how a player got on base. Given that the goal of the shift is to keep runners off base, using a measure that encapsulates how players get on is a great indicator of shift success. Thus, wOBA will serve as our response variable for modeling. 
+
+- To estimate the effects of the shift, we will control for the batter using overall wOBA totals (fixed effect), which will regress players towards the mean.
+
+## Results
+
+## Discussion - Limitations and Future Work
+
+- We encountered several limitations with our exploratory work:
+
+  - We elected to exclude observations from both 2020 and 2022, as both years did not include a full     season's worth of pitch data, and thus did not sufficiently represent year-long trends. 
+  
+  - The shifting categories are very broad and the differences between shift groupings is not           distinct. Similarly, we did not have player positional information. Both of these limited our       overall understanding of the specifics of each shift. 
+
+- For future work, we have considered within-batter matching (more specifically, propensity score     matching) to further enhance our understanding of shifting trends and tendencies. This work would   look into the probability of a shift taking place, thus better helping in-game decisions.                                                               
+## Acknowledgements
+
+- We would like to thank both Dr. Adam Brodie and Dr. Ron Yurko for their help and guidance throughout this process. 
+
+## References
