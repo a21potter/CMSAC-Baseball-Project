@@ -265,7 +265,7 @@ Based on these, we filtered out all Infield-in Scenarios (runner on third, less 
 
 ```{r}
 statcast_data <- statcast_data %>%
-  filter(!(on_3b != "" & outs_when_up < 2))
+  filter(!(on_3b != "" & outs_when_up < 2 & if_fielding_alignment == "Shift"))
 ```
 
 ## Percentages of Standard and Shifted IF and OF Alignments Based on Batter Handedness

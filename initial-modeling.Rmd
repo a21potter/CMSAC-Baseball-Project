@@ -1,0 +1,65 @@
+---
+title: "iInitial Modeling"
+author: "Amber Potter & Nicholas Esposito"
+date: "7/23/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(baseballr)
+library(glue)
+library(tidyverse)
+library(knitr)
+```
+
+
+```{r}
+statcast_data <- read_rds("data/statcast_data_clean.rds")
+
+names(statcast_data)[1] <- 'pitch_id'
+```
+
+```{r}
+statcast_data <- statcast_data %>%
+  group_by(game_id, batter, at_bat_number) %>%
+  #arrange(pitch_number) %>%
+  mutate(pitch_count = max(pitch_number),
+         last_pitch_of_at_bat = case_when(pitch_number == pitch_count ~ TRUE,
+                                          TRUE ~ FALSE)) %>%
+  ungroup()
+```
+
+
+```{r}
+statcast_data <- statcast_data %>%
+  filter(if_fielding_alignment != "", !of_fielding_alignment %in% c("", "Extreme outfield shift"), 
+         !game_type %in% c("S", "E")) # Filter NAs, ex. outfield shift, and ST/E games
+```
+
+```{r}
+statcast_data <- statcast_data %>%
+  filter(!(on_3b != "" & outs_when_up < 2 & if_fielding_alignment == "Shift"))
+```
+
+```{r}
+statcast_data <- statcast_data %>%
+  mutate(general_fielding_alignment = 
+           case_when(if_fielding_alignment == "Infield shift" |
+                       of_fielding_alignment == "4th outfielder" ~ "Shift",
+                     TRUE ~ "Standard"))
+
+# Reduce shifting subcategories to Standard vs Shift
+statcast_data <- statcast_data %>%
+  mutate(if_fielding_alignment = 
+           case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
+                     if_fielding_alignment == "Strategic" |
+                       if_fielding_alignment == "Standard"~ "Standard")) %>%
+  mutate(of_fielding_alignment = 
+           case_when(of_fielding_alignment == "4th outfielder" ~ "Shift",
+                     of_fielding_alignment == "Strategic" |
+                       of_fielding_alignment == "Standard" ~ "Standard"))
+```
