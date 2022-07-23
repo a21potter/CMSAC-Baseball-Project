@@ -63,3 +63,18 @@ statcast_data <- statcast_data %>%
                      of_fielding_alignment == "Strategic" |
                        of_fielding_alignment == "Standard" ~ "Standard"))
 ```
+
+```{r}
+statcast_data <- statcast_data %>%
+  mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
+                                          TRUE ~ babip_value))
+```
+
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data %>%
+  filter(!(game_year %in% c(2020, 2022)))
+
+unique(statcast_data_minus_2020_2022$game_year)
+```
+
+
