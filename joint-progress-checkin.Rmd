@@ -160,7 +160,7 @@ statcast_data %>%
                                       TRUE ~ FALSE)) %>%
   mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
                                           TRUE ~ babip_value)) %>%
-  # filtering for 400+ at bats
+  # filtering for 200+ at bats
   group_by(game_year, batter) %>%
   mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
   filter(total_player_at_bats >= 200) %>%
@@ -200,7 +200,7 @@ runner_on_third_data <- statcast_data %>%
                                       TRUE ~ FALSE)) %>%
     mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
                                           TRUE ~ babip_value)) %>%
-  # filtering for 400+ at bats
+  # filtering for 200+ at bats
   group_by(game_year, batter) %>%
   mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
   filter(total_player_at_bats >= 400) %>%
@@ -305,7 +305,7 @@ statcast_data %>%
 
 ```{r}
 statcast_data %>%
-  group_by(game_year, batter) %>%
+  group_by(game_year, batter, stand) %>%
   mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
   mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
                                           TRUE ~ babip_value)) %>%
@@ -336,7 +336,7 @@ statcast_data %>%
 
 ```{r}
 statcast_data %>%
-  group_by(game_year, batter) %>%
+  group_by(game_year, batter, stand) %>%
   mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
   filter(total_player_at_bats >= 200) %>%
   filter(last_pitch_of_at_bat == TRUE) %>%
