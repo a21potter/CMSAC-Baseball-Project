@@ -6,10 +6,12 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE)
 ```
 
-## Introduction
+# Introduction
 
 Through our work, we hope to:
 
@@ -54,9 +56,9 @@ During initial EDA, we discovered a high proportion of missing shift values in t
 
 In situations with a runner on third base and less than two outs, the infield is likely to be shifted in. The strategic shift category may contain a significant proportion of these scenarios - about 17% of strategic-standard and strategic-strategic observations (infield-outfield). Such situations often inflate offensive outcomes, as the infield-in shift promotes variance in run scoring to maximize win probability at the expense of expected runs allowed. To adjust for this, we removed observations in which the infield would be shifted in. However, to ensure we were not excluding situations in which there was a runner on third base with less than two outs but the infield was not shifted in, we only removed the observations marked as “shift”. 
 
-## EDA
+# EDA
 
-### Load `baseballr` & Other Packages
+
 
 ```{r}
 library(baseballr)
@@ -65,7 +67,6 @@ library(tidyverse)
 library(knitr)
 ```
 
-### Load Data
 
 ```{r}
 statcast_data <- read_rds("data/statcast_data_clean.rds")
@@ -73,7 +74,6 @@ statcast_data <- read_rds("data/statcast_data_clean.rds")
 names(statcast_data)[1] <- 'pitch_id'
 ```
 
-### End of at bat column
 
 ```{r}
 statcast_data <- statcast_data %>%
@@ -90,10 +90,11 @@ statcast_data <- statcast_data %>%
 ```{r}
 statcast_data %>%
   count(stand, p_throws) %>%
-  mutate(prop = n/sum(n))
+  mutate(prop = n/sum(n)) %>%
+  kable(col.names = c("Batter Handedness", "Pitcher Handedness", "Count", "Percentage"))
 ```
 
-### Percent missingness of shift variable by game type
+### Percent Missingness of Shift Variable by Game Type
 
 ```{r}
 statcast_data %>%
@@ -114,7 +115,7 @@ statcast_data %>%
   kable(digits = 4, col.names = c("Game Type", "Percent Missing: IF Alignment"))
 ```
 
-### Filter out Exhibition games, ST games, Extreme Outfield Shift, and NA values from fielding alignments
+### Data Cleaning
 
 - Based on percentage of missing values for each game type, we elected to exclude ST and Exhibition games. 
 
@@ -130,7 +131,7 @@ statcast_data <- statcast_data %>%
 
 ## Shift vs Standard Alignment - Runner on 3rd with Less than 2 Outs
 
-- Proportion of plays where this scenario occurs
+- Percentage of plays where this scenario occurs
 
 ```{r}
 statcast_data %>%
@@ -139,10 +140,10 @@ statcast_data %>%
   filter(last_pitch_of_at_bat == TRUE) %>%
   group_by(if_fielding_alignment, of_fielding_alignment) %>%
   summarize(prop = mean(runner_on_third)) %>% # Prop. for runners on third in each shifting scenario
-  kable()
+  kable(col.names = c("Infield Alignment", "Outfield Alignment", "Percentage Potential Infield-in"))
 ```
 
-## Statistics for infield-in scenarios
+## Statistics for Potential Infield-in Scenarios
 
 - Strikeout rate
 
@@ -150,7 +151,7 @@ statcast_data %>%
 
 - BABIP
 
-- WOBA
+- wOBA
 
 ```{r}
 statcast_data %>%
@@ -185,12 +186,12 @@ statcast_data %>%
   group_by(game_year, runner_on_third) %>%
   summarize(bb_rate = mean(bb_rate), 
           k_rate = mean(k_rate), 
-          babip = mean(babip), 
-          woba = mean(woba)) %>%
-  kable()
+          babip = mean(babip, na.rm = TRUE), 
+          woba = mean(woba, na.rm = TRUE)) %>%
+  kable(col.names = c("Game Year", "Potential Infield-in", "BB Rate", "K Rate", "BABIP", "wOBA"))
 ```
 
-- Confidence Intervals for Infield-in Scenarios
+Confidence Intervals for Potential Infield-in Scenarios:
 
 ```{r}
 runner_on_third_data <- statcast_data %>%
@@ -252,14 +253,15 @@ no_runner_on_third_data <- statcast_data %>%
   filter(runner_on_third == FALSE)
 
 runner_on_third_conf_int <- lm(woba ~ 1, runner_on_third_data)
-confint(runner_on_third_conf_int, level = 0.95)
+confint(runner_on_third_conf_int, level = 0.95) %>%
+  kable()
 
 no_runner_on_third_conf_int <- lm(woba ~ 1, no_runner_on_third_data)
 confint(no_runner_on_third_conf_int, level = 0.95) %>%
   kable()
 ```
 
-## Filter out all Infield-in Scenarios (runner on third, less than two outs)
+Based on these, we filtered out all Infield-in Scenarios (runner on third, less than two outs)
 
 ```{r}
 statcast_data <- statcast_data %>%
@@ -289,23 +291,15 @@ statcast_data <- statcast_data %>%
                        of_fielding_alignment == "Standard" ~ "Standard"))
 ```
 
-- Viewing percentages of general fielding arangements based on handedness
+- Viewing percentages of general fielding alignments based on handedness
 
 ```{r}
 statcast_data %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
-  mutate(prop = n/sum(n)) 
+  mutate(prop = n/sum(n)) %>%
+  kable(col.names = c("Batter Handedness", "Pitcher Handedness", "Infield Alignment", "Outfield Alignment", "Count", "Percentage"))
 ```
 
-## Creating Summary Statistics
-
-- Strikeout rate
-
-- Walk rate
-
-- BABIP
-
-- WOBA
 
 ## Average Summary Stats within Batter Handedness and Shift (Since 2015)
 
@@ -335,10 +329,10 @@ statcast_data %>%
             babip = mean(babip, na.rm = TRUE), 
             woba = mean(woba, na.rm = TRUE),
             .groups = "drop") %>%
-  kable()
+  kable(col.names = c("Game Year", "Batter Handedness", "Infield Alignment", "BB Rate", "K Rate", "BABIP", "wOBA"))
 ```
 
-## Distribution of wOBA for Different Fielding Alignment
+### wOBA Distributions have Greater Variability when Against the Shift
 
 ```{r}
 statcast_data %>%
@@ -355,35 +349,40 @@ statcast_data %>%
   geom_histogram() +
   facet_grid(game_year ~ if_fielding_alignment) +
   labs(x = "wOBA",
-       y = "Frequency",
-       title = "wOBA Distributions have Greater Variability when Against the Shift") +
+       y = "Frequency") +
   theme_minimal()
 ```
 
-## Methodology
+# Methodology
 
 - Our primary tool for analysis is mixed effects modeling, as this approach will provide the best   insight on what factors contribute to the changes in offensive outcome. The wOBA statistic     (weighted on-base average) is very similar to on-base percentage, although it accounts for how a player got on base. Given that the goal of the shift is to keep runners off base, using a measure that encapsulates how players get on is a great indicator of shift success. Thus, wOBA will serve as our response variable for modeling. 
 
 - To estimate the effects of the shift, we will control for the batter using overall wOBA totals (fixed effect), which will regress players towards the mean.
 
-## Results
+# Results
 
 - TBD
 
-## Discussion - Limitations and Future Work
+# Discussion
+
+
+## Limitations
 
 - We encountered several limitations with our exploratory work:
 
-  - We elected to exclude observations from both 2020 and 2022, as both years did not include a full     season's worth of pitch data, and thus did not sufficiently represent year-long trends. 
+  - We elected to exclude observations from both 2020 and 2022, as both years did not include a full season's worth of pitch data, and thus did not sufficiently represent year-long trends. 
   
-  - The shifting categories are very broad and the differences between shift groupings is not           distinct. Similarly, we did not have player positional information. Both of these limited our       overall understanding of the specifics of each shift. 
+  - The shifting categories are very broad and the differences between shift groupings is not distinct. Similarly, we did not have player positional information. Both of these limited our  overall understanding of the specifics of each shift. 
+  
+## Future Work
 
-- For future work, we have considered within-batter matching (more specifically, propensity score     matching) to further enhance our understanding of shifting trends and tendencies. This work would   look into the probability of a shift taking place, thus better helping in-game decisions.                                                               
-## Acknowledgements
+- For future work, we have considered within-batter matching (more specifically, propensity score matching) to further enhance our understanding of shifting trends and tendencies. This work would   look into the probability of a shift taking place, thus better helping in-game decisions. 
 
-- We would like to thank both Dr. Adam Brodie and Dr. Ron Yurko for their help and guidance throughout this process. 
+# Acknowledgements
 
-## References
+- We would like to thank both Dr. Adam Brodie and Dr. Ron Yurko for their help and guidance throughout this project. 
+
+# References
 
 https://batflipsandnerds.com/2021/02/03/the-psychology-of-the-infield-shift/
 
