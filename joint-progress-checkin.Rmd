@@ -191,7 +191,7 @@ statcast_data %>%
   kable(col.names = c("Game Year", "Potential Infield-in", "BB Rate", "K Rate", "BABIP", "wOBA"))
 ```
 
-Confidence Intervals for Potential Infield-in Scenarios:
+## Confidence Intervals for Potential Infield-in Scenarios:
 
 ```{r}
 runner_on_third_data <- statcast_data %>%
