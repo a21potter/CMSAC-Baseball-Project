@@ -15,6 +15,7 @@ library(baseballr)
 library(glue)
 library(tidyverse)
 library(knitr)
+library(ranger)
 ```
 
 ```{r}
@@ -88,4 +89,9 @@ statcast_data_minus_2020_2022 <- statcast_data %>%
 unique(statcast_data_minus_2020_2022$game_year)
 ```
 
+# Random forest and variable of importance
+
+```{r}
+init_statcast_data_rf <- ranger(woba)
+```
 
