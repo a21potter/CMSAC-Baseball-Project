@@ -1,5 +1,5 @@
 ---
-title: "iInitial Modeling"
+title: "Initial Modeling"
 author: "Amber Potter & Nicholas Esposito"
 date: "7/23/2022"
 output: html_document
@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Load libraries and data
 ```{r}
 library(baseballr)
 library(glue)
@@ -16,12 +17,13 @@ library(tidyverse)
 library(knitr)
 ```
 
-
 ```{r}
 statcast_data <- read_rds("data/statcast_data_clean.rds")
 
 names(statcast_data)[1] <- 'pitch_id'
 ```
+
+# Create an indicator for the last pitch of an at-bat
 
 ```{r}
 statcast_data <- statcast_data %>%
@@ -33,6 +35,7 @@ statcast_data <- statcast_data %>%
   ungroup()
 ```
 
+# Filter out NA values in each field alignment category, extreme outfield shift, and spring training/exhibition games
 
 ```{r}
 statcast_data <- statcast_data %>%
@@ -40,10 +43,14 @@ statcast_data <- statcast_data %>%
          !game_type %in% c("S", "E")) # Filter NAs, ex. outfield shift, and ST/E games
 ```
 
+# Filter out potential infield-in situations
+
 ```{r}
 statcast_data <- statcast_data %>%
   filter(!(on_3b != "" & outs_when_up < 2 & if_fielding_alignment == "Shift"))
 ```
+
+# Reduce shifting categories to shift vs standard
 
 ```{r}
 statcast_data <- statcast_data %>%
@@ -64,12 +71,16 @@ statcast_data <- statcast_data %>%
                        of_fielding_alignment == "Standard" ~ "Standard"))
 ```
 
+# Adjust BABIP calculation to exclude NAs and variables not involved in finding BABIP
+
 ```{r}
 statcast_data <- statcast_data %>%
   mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
                                           TRUE ~ babip_value))
 ```
 
+# Filter out 2020 and 2022 seasons
+ 
 ```{r}
 statcast_data_minus_2020_2022 <- statcast_data %>%
   filter(!(game_year %in% c(2020, 2022)))
