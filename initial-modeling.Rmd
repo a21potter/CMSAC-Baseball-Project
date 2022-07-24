@@ -31,6 +31,16 @@ statcast_data_minus_2020_2022 <- statcast_data %>%
   filter(!(game_year %in% c(2020, 2022)))
 ```
 
+# 200+ at bats
+
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  group_by(game_year, batter, stand, if_fielding_alignment) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
+  filter(total_player_at_bats >= 200)
+```
+
+
 # Create an indicator for the last pitch of an at-bat
 
 ```{r}
@@ -90,7 +100,7 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
 
 
 ```{r}
-statcast_data_minus_2020_2022 %>%
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
 #  filter(last_pitch_of_at_bat == TRUE) %>%
   mutate(walk = case_when(events == "walk" ~ 1,
                           TRUE ~ 0),
@@ -103,12 +113,25 @@ statcast_data_minus_2020_2022 %>%
             woba = sum(woba_value, na.rm = TRUE) / length(which(last_pitch_of_at_bat == TRUE)))
 ```
 
+# Training set
+
+```{r}
+statcast_data_minus_2020_2022 %>%
+  mutate(batter_instance_identifier = paste(batter, game_year, stand, if_fielding_alignment, sep = ":"))
+
+  
+batters_vector <- unique(statcast_data_minus_2020_2022$batter)
+
+length
+```
+
 
 
 
 # Random forest and variable of importance
 
 ```{r}
-init_statcast_data_rf <- ranger(woba)
+init_statcast_data_rf <- ranger(woba ~ ., data = statcast_data_minus_2020_2022, num.trees = 500, importance = "impurity")
+init_statcast_data_rf
 ```
 
