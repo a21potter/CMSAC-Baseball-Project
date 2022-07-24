@@ -24,10 +24,17 @@ statcast_data <- read_rds("data/statcast_data_clean.rds")
 names(statcast_data)[1] <- 'pitch_id'
 ```
 
+# Filter out 2020 and 2022 seasons
+ 
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data %>%
+  filter(!(game_year %in% c(2020, 2022)))
+```
+
 # Create an indicator for the last pitch of an at-bat
 
 ```{r}
-statcast_data <- statcast_data %>%
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   group_by(game_id, batter, at_bat_number) %>%
   #arrange(pitch_number) %>%
   mutate(pitch_count = max(pitch_number),
@@ -39,7 +46,7 @@ statcast_data <- statcast_data %>%
 # Filter out NA values in each field alignment category, extreme outfield shift, and spring training/exhibition games
 
 ```{r}
-statcast_data <- statcast_data %>%
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   filter(if_fielding_alignment != "", !of_fielding_alignment %in% c("", "Extreme outfield shift"), 
          !game_type %in% c("S", "E")) # Filter NAs, ex. outfield shift, and ST/E games
 ```
@@ -47,21 +54,21 @@ statcast_data <- statcast_data %>%
 # Filter out potential infield-in situations
 
 ```{r}
-statcast_data <- statcast_data %>%
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   filter(!(on_3b != "" & outs_when_up < 2 & if_fielding_alignment == "Shift"))
 ```
 
 # Reduce shifting categories to shift vs standard
 
 ```{r}
-statcast_data <- statcast_data %>%
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   mutate(general_fielding_alignment = 
            case_when(if_fielding_alignment == "Infield shift" |
                        of_fielding_alignment == "4th outfielder" ~ "Shift",
                      TRUE ~ "Standard"))
 
 # Reduce shifting subcategories to Standard vs Shift
-statcast_data <- statcast_data %>%
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   mutate(if_fielding_alignment = 
            case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
                      if_fielding_alignment == "Strategic" |
@@ -75,19 +82,29 @@ statcast_data <- statcast_data %>%
 # Adjust BABIP calculation to exclude NAs and variables not involved in finding BABIP
 
 ```{r}
-statcast_data <- statcast_data %>%
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
                                           TRUE ~ babip_value))
 ```
 
-# Filter out 2020 and 2022 seasons
- 
-```{r}
-statcast_data_minus_2020_2022 <- statcast_data %>%
-  filter(!(game_year %in% c(2020, 2022)))
 
-unique(statcast_data_minus_2020_2022$game_year)
+
+```{r}
+statcast_data_minus_2020_2022 %>%
+#  filter(last_pitch_of_at_bat == TRUE) %>%
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  group_by(game_year, batter, stand, if_fielding_alignment) %>%
+  mutate(bb_rate = sum(walk) / length(which(last_pitch_of_at_bat == TRUE)),
+            k_rate = sum(strikeout) / length(which(last_pitch_of_at_bat == TRUE)),
+            babip = mean(babip_value_with_NAs, na.rm = TRUE),
+            woba = sum(woba_value, na.rm = TRUE) / length(which(last_pitch_of_at_bat == TRUE)))
 ```
+
+
+
 
 # Random forest and variable of importance
 
