@@ -123,13 +123,9 @@ statcast_training_data_rf_identifiers <- statcast_data_minus_2020_2022 %>%
   unique() %>%
   group_by(game_year, stand, if_fielding_alignment) %>%
   sample_frac(.2)
-  
-  
 
-  
-batters_vector <- unique(statcast_data_minus_2020_2022$batter)
-
-#length
+statcast_training_data <- statcast_data_minus_2020_2022 %>%
+  filter(batter_instance_identifier %in% statcast_training_data_rf_identifiers$batter_instance_identifier)
 ```
 
 
@@ -138,7 +134,7 @@ batters_vector <- unique(statcast_data_minus_2020_2022$batter)
 # Random forest and variable of importance
 
 ```{r}
-init_statcast_data_rf <- ranger(woba ~ ., data = statcast_data_minus_2020_2022, num.trees = 500, importance = "impurity")
+init_statcast_data_rf <- ranger(woba ~ ., data = statcast_training_data, num.trees = 500, importance = "impurity")
 init_statcast_data_rf
 ```
 
