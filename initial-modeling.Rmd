@@ -178,14 +178,37 @@ unique(statcast_data_at_bats_minus_2020_2022$pitch_type)
 ```
 
 
-## Variables as factors
+## Variables as factors - SHOULD WE FORMAT MIDDLE NUMBERS (2,5,8) IN SAME WAY (M#?)
 
 ```{r}
 statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>%
   mutate(game_year = as.factor(game_year),
          batter = as.factor(batter),
          pitcher = as.factor(pitcher),
-         zone = as.factor(zone))
+         zone = as.character(zone)) %>%
+  mutate(zone = fct_recode(zone, "R1" = "1", # Mutate zone variable to include R identifier
+                           "R3" = "3",
+                           "R4" = "4",
+                           "R6" = "6",
+                           "R7" = "7",
+                           "R9" = "9",
+                           "R11" = "11",
+                           "R12" = "12",
+                           "R13" = "13",
+                           "R14" = "14")) %>%
+  mutate(zone = case_when(stand == "L" ~ fct_recode(zone, # Change identifier to L/flip zone
+                           "L3" = "R1",                
+                           "L1" = "R3",
+                           "L6" = "R4",
+                           "L4" = "R6",
+                           "L9" = "R7",
+                           "L7" = "R9", # Currently, it overrides the righties
+                           "L12" = "R11",
+                           "L11" = "R12",
+                           "L14" = "R13",
+                           "L13" = "R14"),
+                          TRUE ~ zone)) %>%
+  mutate(zone = as.factor(zone))
 
 statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>%
   mutate(stand = factor(stand, levels = c("R", "L")),
