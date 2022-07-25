@@ -137,4 +137,18 @@ statcast_training_data <- statcast_data_minus_2020_2022 %>%
 init_statcast_data_rf <- ranger(woba ~ ., data = statcast_training_data, num.trees = 500, importance = "impurity")
 init_statcast_data_rf
 ```
+When shifting takes place, how is wOBA affected?
 
+control for shifting, batter info, pitcher info, handedness
+
+Controlling for ability of hitter (batter's wOBA) -> this is the outcome on wOBA
+
+mixed effects -> batter/pitcher
+
+coeff. estimate for shifts
+
+formal inference (use whole data for learning) 
+
+pitch type driving changes? easier for righties to hit righty CBs
+
+Use last pitch of at-bat (modeling at at-bat level!)
