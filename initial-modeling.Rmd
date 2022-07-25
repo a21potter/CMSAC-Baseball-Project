@@ -31,16 +31,6 @@ statcast_data_minus_2020_2022 <- statcast_data %>%
   filter(!(game_year %in% c(2020, 2022)))
 ```
 
-# 200+ at bats
-
-```{r}
-statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
-  group_by(game_year, batter, stand, if_fielding_alignment) %>%
-  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
-  filter(total_player_at_bats >= 200)
-```
-
-
 # Create an indicator for the last pitch of an at-bat
 
 ```{r}
@@ -51,6 +41,15 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
          last_pitch_of_at_bat = case_when(pitch_number == pitch_count ~ TRUE,
                                           TRUE ~ FALSE)) %>%
   ungroup()
+```
+
+# 200+ at bats
+
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  group_by(game_year, batter, stand, if_fielding_alignment) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
+  filter(total_player_at_bats >= 200)
 ```
 
 # Filter out NA values in each field alignment category, extreme outfield shift, and spring training/exhibition games
@@ -116,13 +115,21 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
 # Training set
 
 ```{r}
-statcast_data_minus_2020_2022 %>%
-  mutate(batter_instance_identifier = paste(batter, game_year, stand, if_fielding_alignment, sep = ":"))
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  mutate(batter_instance_identifier = paste(batter, game_year, stand, if_fielding_alignment, sep = ":")) 
+    
+statcast_training_data_rf_identifiers <- statcast_data_minus_2020_2022 %>%
+  select(game_year, batter, stand, if_fielding_alignment, batter_instance_identifier) %>%
+  unique() %>%
+  group_by(game_year, stand, if_fielding_alignment) %>%
+  sample_frac(.2)
+  
+  
 
   
 batters_vector <- unique(statcast_data_minus_2020_2022$batter)
 
-length
+#length
 ```
 
 
