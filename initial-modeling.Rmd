@@ -31,6 +31,32 @@ statcast_data_minus_2020_2022 <- statcast_data %>%
   filter(!(game_year %in% c(2020, 2022)))
 ```
 
+
+# Reclassifying pitch type
+
+```{r, warning = FALSE, message = FALSE}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  filter(!is.na(pitch_type)) %>%
+  mutate(general_pitch_type = fct_recode(as.factor(pitch_type),
+                                        "Breaking Ball" = "CU",
+                                        "Fastball" = "FF",
+                                        "Breaking Ball" = "SL",
+                                        "Fastball" = "SI",
+                                        "Changeup" = "CH",
+                                        "Breaking Ball" = "KC",
+                                        "Fastball" = "FC",
+                                        "Fastball" = "FS",
+                                        "Non-Pitch" = "IN",
+                                        "Breaking Ball" = "FO",
+                                        "Other" = "",
+                                        "Changeup" = "EP",
+                                        "Knuckle Ball" = "KN",
+                                        "Non-Pitch" = "PO",
+                                        "Fastball" = "FA",
+                                        "Breaking Ball" = "SC",
+                                        "Breaking Ball" = "CS"))
+```
+
 # Create an indicator for the last pitch of an at-bat
 
 ```{r}
@@ -51,6 +77,19 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
   filter(total_player_at_bats >= 200)
 ```
+
+## Strikeout labels
+
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  mutate(pitch_outcome = case_when(events != "" ~ events,
+                                   events == "" ~ description)) %>%
+  mutate(pitch_outcome = case_when(events == "strikeout" & description == "swinging_strike" ~ "strikeout_swinging",
+                                   events == "strikeout" & description == "called_strike" ~ "strikeout_called",
+                                   events == "strikeout" & !(description %in% c("swinging_strike", "called_strike")) ~ paste0("strikeout_other"),
+                                   TRUE ~ pitch_outcome))
+```
+
 
 # Filter out NA values in each field alignment category, extreme outfield shift, and spring training/exhibition games
 
@@ -129,13 +168,64 @@ statcast_training_data <- statcast_data_minus_2020_2022 %>%
 ```
 
 
+# At-bat level data
+
+```{r}
+statcast_data_at_bats_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  filter(last_pitch_of_at_bat == TRUE)
+
+unique(statcast_data_at_bats_minus_2020_2022$pitch_type)
+```
+
+
+## Variables as factors
+
+```{r}
+statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>%
+  mutate(game_year = as.factor(game_year),
+         batter = as.factor(batter),
+         pitcher = as.factor(pitcher),
+         zone = as.factor(zone))
+
+statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>%
+  mutate(stand = factor(stand, levels = c("R", "L")),
+         p_throws = factor(p_throws, levels = c("R", "L")),
+         if_fielding_alignment = factor(if_fielding_alignment, levels = c("Standard", "Shift")))
+```
+
+## Remove non-pitches
+
+```{r}
+statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>%
+  filter(general_pitch_type != "Non-Pitch")
+```
+
 
 
 # Random forest and variable of importance
 
 ```{r}
-init_statcast_data_rf <- ranger(woba ~ ., data = statcast_training_data, num.trees = 500, importance = "impurity")
-init_statcast_data_rf
+init_linear_model <- lm(woba_value ~ general_pitch_type + 
+                          game_year + 
+                          if_fielding_alignment + 
+                          zone + 
+                          stand+ 
+                          p_throws+ 
+                          woba + 
+                          p_throws * stand * if_fielding_alignment + 
+                          zone * if_fielding_alignment * general_pitch_type, 
+                        data = statcast_data_at_bats_minus_2020_2022)
+
+
+summary(init_linear_model)
+```
+
+
+```{r}
+init_linear_model <- lm(woba_value ~ general_pitch_type + game_year + if_fielding_alignment + zone + stand + p_throws + woba, data = statcast_data_at_bats_minus_2020_2022)
+
+
+init_linear_model
 ```
 When shifting takes place, how is wOBA affected?
 
