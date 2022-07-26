@@ -209,6 +209,11 @@ statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %
                           stand == "L" & zone %in% c(3, 6, 9) ~ zone - 2,
                           stand == "L" & zone %in% c(12, 14) ~ zone - 2,
                           TRUE ~ zone)) %>%
+  mutate(zone_simp = case_when(zone_new %in% c(1, 4, 7) ~ "Inside",
+                               zone_new %in% c(2, 5, 8) ~ "Middle",
+                               zone_new %in% c(3, 6, 9) ~ "Outside",
+                               TRUE ~ "Out of Zone")) %>%
+  select(- zone_new) %>%
   mutate(zone = as.factor(zone))
 
 ```
