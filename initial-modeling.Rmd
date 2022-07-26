@@ -69,11 +69,11 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   ungroup()
 ```
 
-# 200+ at bats
+# 200+ at bats (overall)
 
 ```{r}
 statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
-  group_by(game_year, batter, stand, if_fielding_alignment) %>%
+  group_by(game_year, batter, stand) %>%
   mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
   filter(total_player_at_bats >= 200)
 ```
