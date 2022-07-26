@@ -1,0 +1,26 @@
+---
+title: "final-analysis"
+author: "Nicholas Esposito and Amber Potter"
+date: "7/26/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load `baseballr` & Other Packages
+
+```{r}
+library(baseballr)
+library(glue)
+library(tidyverse)
+library(knitr)
+```
+
+## Read in data
+
+```{r}
+statcast_at_bat_model_data <- read_rds("data/statcast_at_bat_model_data.rds")
+```
+
