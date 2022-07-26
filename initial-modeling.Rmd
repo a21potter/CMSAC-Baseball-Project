@@ -226,7 +226,7 @@ write_rds(statcast_data_at_bats_minus_2020_2022, "data/statcast_at_bat_model_dat
 ```
 
 
-# Random forest and variable of importance
+# Basic Linear Model
 
 ```{r}
 init_linear_model <- lm(woba_value ~ general_pitch_type + 
@@ -245,12 +245,6 @@ summary(init_linear_model)
 ```
 
 
-```{r}
-init_linear_model <- lm(woba_value ~ general_pitch_type + game_year + if_fielding_alignment + zone + stand + p_throws + woba, data = statcast_data_at_bats_minus_2020_2022)
-
-
-init_linear_model
-```
 When shifting takes place, how is wOBA affected?
 
 control for shifting, batter info, pitcher info, handedness
