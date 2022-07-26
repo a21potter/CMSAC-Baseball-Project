@@ -9,10 +9,19 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Load `baseballr` & Other Packages
+
+```{r}
+library(baseballr)
+library(glue)
+library(tidyverse)
+library(knitr)
+```
+
 ## Read in data
 
 ```{r}
-statcast_at_bat_data_model_data <- read_rds("data/statcast_at_bat_model_data.rds")
+statcast_at_bat_model_data <- read_rds("data/statcast_at_bat_model_data.rds")
 ```
 
 ## wOBA over time by shift type
@@ -49,11 +58,17 @@ init_linear_model <- lm(woba_value ~ general_pitch_type +
                           stand+ 
                           p_throws+ 
                           woba + 
-                          p_throws * stand * if_fielding_alignment + 
-                          zone * if_fielding_alignment * general_pitch_type, 
-                        data = statcast_at_bat_data_model_data)
+                          #stand * if_fielding_alignment,
+                          p_throws * stand * if_fielding_alignment, 
+                          #zone * if_fielding_alignment * general_pitch_type, 
+                        data = statcast_at_bat_model_data)
 
 
 summary(init_linear_model)
+```
+
+```{r}
+library(ggfortify)
+autoplot(init_linear_model)
 ```
 
