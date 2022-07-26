@@ -184,8 +184,8 @@ unique(statcast_data_at_bats_minus_2020_2022$pitch_type)
 statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %>%
   mutate(game_year = as.factor(game_year),
          batter = as.factor(batter),
-         pitcher = as.factor(pitcher),
-         zone = as.factor(zone)) %>%
+         pitcher = as.factor(pitcher))
+         #zone = as.factor(zone)) %>%
   mutate(stand = factor(stand, levels = c("R", "L")),
          p_throws = factor(p_throws, levels = c("R", "L")),
          if_fielding_alignment = factor(if_fielding_alignment, levels = c("Standard", "Shift")))
@@ -198,43 +198,30 @@ statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>
   filter(general_pitch_type != "Non-Pitch")
 ```
 
-## Write modified dataset as RDS
-
-```{r}
-write_rds(statcast_data_at_bats_minus_2020_2022, "data/statcast_at_bat_data.rds", compress = "gz")
-```
 
 
 ## Fix zones
 
 ```{r}
-statcast_data_at_bats_minus_2020_2022 %>%
-  mutate(zone = as.character(zone)) %>%
-  mutate(zone = fct_recode(zone, "R1" = "1", # Mutate zone variable to include R identifier
-                           "R3" = "3",
-                           "R4" = "4",
-                           "R6" = "6",
-                           "R7" = "7",
-                           "R9" = "9",
-                           "R11" = "11",
-                           "R12" = "12",
-                           "R13" = "13",
-                           "R14" = "14")) %>%
-  mutate(zone = case_when(stand == "L" ~ fct_recode(zone, # Change identifier to L/flip zone
-                           "L3" = "R1",                
-                           "L1" = "R3",
-                           "L6" = "R4",
-                           "L4" = "R6",
-                           "L9" = "R7",
-                           "L7" = "R9", # Currently, it overrides the righties
-                           "L12" = "R11",
-                           "L11" = "R12",
-                           "L14" = "R13",
-                           "L13" = "R14"),
-                          stand == "R" ~ zone)) %>%
+statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %>%
+  #mutate(zone = as.numeric(zone)) %>%
+  mutate(zone_new = case_when(stand == "L" & zone %in% c(1, 4, 7) ~ zone + 2,
+                          stand == "L" & zone %in% c(11, 13) ~ zone + 2,
+                          stand == "L" & zone %in% c(3, 6, 9) ~ zone - 2,
+                          stand == "L" & zone %in% c(12, 14) ~ zone - 2,
+                          TRUE ~ zone)) %>%
   mutate(zone = as.factor(zone))
 
 ```
+
+
+## Write modified dataset as RDS
+
+```{r}
+write_rds(statcast_data_at_bats_minus_2020_2022, "data/statcast_at_bat_model_data.rds", compress = "gz")
+```
+
+
 
 
 # Random forest and variable of importance
