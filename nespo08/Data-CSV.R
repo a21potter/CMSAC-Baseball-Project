@@ -10,7 +10,7 @@ library(RPostgreSQL)
 library(glue)
 
 temp <- scrape_statcast_savant("2015-05-01", "2015-05-08")
-write.csv(temp, file = "data-nick/statcast_data_batters_2015_p1")
+write.csv(temp, file = "data/statcast_data_batters_2015_p1")
 
 # Load by year - Bill Petti function --------------------------------------
 
@@ -53,8 +53,5 @@ year <- seq(2015, 2022, 1)
 
 for (i in 1:8){
   temp <- annual_statcast_query(year[i])
-  write.csv(temp, file = glue("data-nick/statcast_data_batters_", as.character(year[i])))
+  write.csv(temp, file = glue("data/statcast_data_batters_", as.character(year[i])))
 }
-
-#temp <- annual_statcast_query(2022)
-#write.csv(temp, file = glue("data-nick/statcast_data_batters_", as.character(2022)))

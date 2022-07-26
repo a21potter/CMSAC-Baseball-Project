@@ -181,11 +181,35 @@ unique(statcast_data_at_bats_minus_2020_2022$pitch_type)
 ## Variables as factors - SHOULD WE FORMAT MIDDLE NUMBERS (2,5,8) IN SAME WAY (M#?)
 
 ```{r}
-statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>%
+statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %>%
   mutate(game_year = as.factor(game_year),
          batter = as.factor(batter),
          pitcher = as.factor(pitcher),
-         zone = as.character(zone)) %>%
+         zone = as.factor(zone)) %>%
+  mutate(stand = factor(stand, levels = c("R", "L")),
+         p_throws = factor(p_throws, levels = c("R", "L")),
+         if_fielding_alignment = factor(if_fielding_alignment, levels = c("Standard", "Shift")))
+```
+
+## Remove non-pitches
+
+```{r}
+statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>%
+  filter(general_pitch_type != "Non-Pitch")
+```
+
+## Write modified dataset as RDS
+
+```{r}
+write_rds(statcast_data_at_bats_minus_2020_2022, "data/statcast_at_bat_data.rds", compress = "gz")
+```
+
+
+## Fix zones
+
+```{r}
+statcast_data_at_bats_minus_2020_2022 %>%
+  mutate(zone = as.character(zone)) %>%
   mutate(zone = fct_recode(zone, "R1" = "1", # Mutate zone variable to include R identifier
                            "R3" = "3",
                            "R4" = "4",
@@ -207,22 +231,10 @@ statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>
                            "L11" = "R12",
                            "L14" = "R13",
                            "L13" = "R14"),
-                          TRUE ~ zone)) %>%
+                          stand == "R" ~ zone)) %>%
   mutate(zone = as.factor(zone))
 
-statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>%
-  mutate(stand = factor(stand, levels = c("R", "L")),
-         p_throws = factor(p_throws, levels = c("R", "L")),
-         if_fielding_alignment = factor(if_fielding_alignment, levels = c("Standard", "Shift")))
 ```
-
-## Remove non-pitches
-
-```{r}
-statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>%
-  filter(general_pitch_type != "Non-Pitch")
-```
-
 
 
 # Random forest and variable of importance
