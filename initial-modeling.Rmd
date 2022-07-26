@@ -136,7 +136,6 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
 ```
 
 
-
 ```{r}
 statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
 #  filter(last_pitch_of_at_bat == TRUE) %>%
@@ -220,8 +219,6 @@ statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %
 ```{r}
 write_rds(statcast_data_at_bats_minus_2020_2022, "data/statcast_at_bat_model_data.rds", compress = "gz")
 ```
-
-
 
 
 # Random forest and variable of importance

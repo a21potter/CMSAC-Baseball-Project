@@ -1,0 +1,76 @@
+---
+title: "final_meeting"
+author: "Nicholas Esposito and Amber Potter"
+date: "7/25/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Read in data
+
+```{r}
+statcast_at_bat_data_model_data <- read_rds("data/statcast_at_bat_model_data.rds")
+```
+
+## wOBA over time by shift type
+
+```{r}
+library(ggbreak)
+statcast_at_bat_data_model_data %>%
+  mutate(game_year = fct_recode(game_year, 2015 = "0"))
+  group_by(game_year, stand, if_fielding_alignment) %>%
+  summarize(avg_woba = mean(woba, na.rm = TRUE)) %>%
+  unique() %>%
+  ggplot(aes(x = as.numeric(game_year), y = avg_woba, color = if_fielding_alignment)) +
+  geom_line() +
+  labs(x = "Year", y = "wOBA") +
+  scale_x_break(2020) +
+  facet_wrap(~stand)
+```
+
+## BABIP over time by shift type
+
+```{r}
+statcast_data %>%
+  group_by(game_year, batter, stand) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
+  mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
+                                          TRUE ~ babip_value)) %>%
+  filter(total_player_at_bats >= 200) %>%
+  group_by(game_year, batter, stand, if_fielding_alignment) %>%
+  summarize(if_fielding_alignment, 
+            babip = mean(babip_value_with_NAs, na.rm = TRUE)) %>%
+  group_by(game_year, stand, if_fielding_alignment) %>%
+  unique() %>%
+  summarize(if_fielding_alignment,
+            avg_babip = mean(babip, na.rm = TRUE)) %>%
+  unique() %>%
+  ggplot(aes(x = game_year, y = avg_babip, color = if_fielding_alignment)) +
+  geom_line() +
+  labs(x = "Year", y = "BABIP") +
+  scale_x_continuous(breaks = seq(2015, 2022, 1)) +
+  scale_y_continuous(labels = scales::number_format(accuracy = 0.001)) +
+  facet_wrap(~stand)
+```
+
+## Basic linear modeling
+
+```{r}
+init_linear_model <- lm(woba_value ~ general_pitch_type + 
+                          game_year + 
+                          if_fielding_alignment + 
+                          zone + 
+                          stand+ 
+                          p_throws+ 
+                          woba + 
+                          p_throws * stand * if_fielding_alignment + 
+                          zone * if_fielding_alignment * general_pitch_type, 
+                        data = statcast_at_bat_data_model_data)
+
+
+summary(init_linear_model)
+```
+
