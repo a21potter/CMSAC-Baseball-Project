@@ -218,6 +218,40 @@ statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %
 
 ```
 
+## Delta wOBA
+
+```{r}
+delta_woba_vector <- statcast_data_at_bats_minus_2020_2022 %>%
+  group_by(game_year, batter, stand) %>%
+  select(batter_instance_identifier, woba, total_player_at_bats) %>%
+  unique() %>%
+  mutate(count = n()) %>%
+  filter(count == 2) %>%
+  arrange(batter_instance_identifier) %>%
+  # delta woba
+  mutate(delta_woba = lead(woba) - woba) %>%
+  mutate(delta_woba = ifelse(is.na(delta_woba), lag(delta_woba), delta_woba)) %>%
+  mutate(batter_identifier = paste(batter, game_year, stand, sep = ":")) %>%
+  # harmonic mean delta woba
+  mutate(harmonic_mean_delta_woba = ((2 * total_player_at_bats * lead(total_player_at_bats)) / total_player_at_bats + lead(total_player_at_bats)) * delta_woba) %>%
+  mutate(harmonic_mean_delta_woba = ifelse(is.na(harmonic_mean_delta_woba), lag(harmonic_mean_delta_woba), harmonic_mean_delta_woba)) %>%
+  select(batter_identifier, delta_woba, harmonic_mean_delta_woba)
+
+  
+
+statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %>%
+  mutate(batter_identifier = paste(batter, game_year, stand, sep = ":")) %>%
+  left_join(delta_woba_vector, by = c("batter_identifier" = "batter_identifier", "game_year" = "game_year", "batter" = "batter", "stand" = "stand"))
+```
+
+## Binary At-Bat Outcome
+
+```{r}
+statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %>%
+  mutate(on_base_binary = case_when(woba_value == 0 ~ 0,
+                                    TRUE ~ 1))
+```
+
 
 ## Write modified dataset as RDS
 
