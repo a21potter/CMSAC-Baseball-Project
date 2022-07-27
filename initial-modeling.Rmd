@@ -183,7 +183,7 @@ unique(statcast_data_at_bats_minus_2020_2022$pitch_type)
 statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %>%
   mutate(game_year = as.factor(game_year),
          batter = as.factor(batter),
-         pitcher = as.factor(pitcher))
+         pitcher = as.factor(pitcher)) %>%
          #zone = as.factor(zone)) %>%
   mutate(stand = factor(stand, levels = c("R", "L")),
          p_throws = factor(p_throws, levels = c("R", "L")),
