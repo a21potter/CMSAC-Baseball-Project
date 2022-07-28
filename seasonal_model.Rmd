@@ -56,7 +56,7 @@ seasonal_data %>%
 
 
 ```{r}
-seasonal_lm <- lm(delta_woba ~ . + prop_breaking_ball * p_throws * stand + prop_shift * stand - delta_woba, data = seasonal_data)
+seasonal_lm <- lm(delta_woba ~ . + prop_outside_pitches * stand + prop_shift * stand - delta_woba + prop_inside_pitches * stand, data = seasonal_data)
 
 summary(seasonal_lm)
 
