@@ -1,0 +1,173 @@
+---
+title: "Determining the Critical Influences on the Offensive Outcomes of Shifted At-Bats"
+author: "Nicholas Esposito and Amber Potter"
+date: "7/27/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+# Load `baseballr`, Other Packages, and Data
+
+library(baseballr)
+library(glue)
+library(tidyverse)
+library(knitr)
+
+statcast_at_bat_model_data <- read_rds("data/statcast_at_bat_model_data.rds")
+
+shift_count_table <- readRDS("data/shift_count_table.RDS")
+```
+
+## Introduction
+
+Per MLB, shifting describes the situational defensive realignment of fielders away from their “traditional” (or for our purposes, standard) starting positions. Given that most recent discussion around shifting has been focused on defensive movement in the infield, we will center our analysis on the infield. [Statcast](https://www.mlb.com/glossary/statcast/shifts) defines infield positioning in three ways:
+
+  **1. Standard** - The infield is in their traditional positions.
+
+![*Figure 1: Standard Alignment (MLB)*](images/standard_fielding_alignment.png){width=5%, height=5%}
+
+  **2. Infield Shift** - Three or more infielders are positioned on one side of second base. 
+
+![*Figure 2: Infield Shift (MLB)*](images/infield_shift.png){width=50% height=50%}
+  
+  **3. Strategic** - A catch-all category for positioning that does not fit either category.
+  
+![*Figure 3: Strategic Alignment (MLB)*](images/strategic_shift.png){width=50% height=50%}
+  
+In recent years, the shift has become the topic of heated debate in the baseball world. As use of the shift has increased, the number of people in opposition has grown as well. The counterargument is built on the idea that the shift “steals” hits at a rate that puts hitters at a significant disadvantage, relative to the defense. According to [Zachary Rymer of Bleacher Report](https://bleacherreport.com/articles/10028942-a-shift-ban-is-the-game-changer-mlb-needs-right-now), between 2015 and 2016, hard hit balls (exit velocity of 95+ MPH) to the pull side resulted in a hit 58 percent of the time. This number is down to 50 percent for 2020 and 2021, with left-handed hitters suffering more than their right-handed counterparts. Shifting trends are observed to be different for right-handed hitters, a phenomenon that will serve as the main motivation for our work. 
+
+Tom Tango looks into this in [The Psychology of the Infield Shift](https://batflipsandnerds.com/2021/02/03/the-psychology-of-the-infield-shift/), highlighting that wOBA is the main differentiator between the shift’s effect on righties versus lefties. Similar to on-base percentage, [wOBA](https://www.mlb.com/glossary/advanced-stats/weighted-on-base-average) expands further to account for how a player reached base. The value for each way of reaching base is determined by how much an event is worth relative to projected runs scored, so some outcomes (doubles) are worth more than others (singles). In Tango’s work, lefties displayed a lower wOBA when shifted against, while wOBA increases for righties, both relative to non-shifted situations. We will also look into [BABIP](https://www.mlb.com/glossary/advanced-stats/babip) which measures batting average exclusively on balls in play, excluding several batted-ball outcomes that do not involve the influence of the defense, such as homeruns. However, given the right-handed hitter phenomenon, wOBA is the primary statistic of interest for our analysis.
+ 
+## Data
+
+# The Dataset (CHnage this section name)
+
+For our work, we accessed pitch-by-pitch Statcast data from the [baseballR package (Bill Petti)](https://cran.r-project.org/web/packages/baseballr/baseballr.pdf). This dataset contained pitch-level information dating back to 2015, when Statcast technology was introduced in all 30 MLB stadiums, up to **July 13th, 2022**, which we declared the current season’s cutoff. The initial dataset had 93 variables per observation; however, during preprocessing, we performed several transformations to prepare the dataset for analysis:
+
+  - Removed all columns with only NA values.
+  
+  - Grouped event and description columns for different types of strikeouts, so strikeout descriptions in the resulting column include whether the strikeout was *swinging, looking,* or *other* (a catch-all for foul bunts, dropped third strikes, etc.).
+  
+  - Added an at-bat column to keep track of the number of at-bats per player per game (at-bat #1, #2, etc.).
+  
+  - Grouped pitch types into general categories: *Fastball, Breaking Ball,* and *Changeup*.
+  
+  - Grouped strike out zones, which were initially divided into 14 regions: *Inside, Outside, Middle,* and *Out of Zone*. 
+
+After preprocessing, each observation had 88 variables, such as:
+
+  - Game Year, Game Date, Game Type (Spring Training, Regular Season)
+
+  - Pitcher and Batter Identifiers (Name, Unique ID, Handiness)
+  
+  - Game Information (Score, Outs, Runners On-Base, Inning)
+
+  - Pitch Information (Pitch Type, Pitch Location, Pitch Outcome)
+  
+  - Positional (Shifting) Data
+  
+    - We grouped the infield fielding alignments into two categories to reduce the number of shift  identifiers: 
+    
+      - **Strategic and Standard were grouped into Standard**: Since strategic shifts are only “slight” variations of traditional alignment and do not encapsulate the focus of our analysis. 
+    
+      - **Infield shift was reclassified as Shift**.
+
+  - Player Statistics (wOBA, BABIP)
+    
+    - We also calculated our own player statistics: **walk rate** and **strikeout rate**.
+
+After preprocessing, we also added several additional variables:
+
+  - *Last_pitch_of_at_bat*: A true/false identifier that allowed us to filter observations by at-bat.
+  
+  - *Babip_value_with_NAs*: We replaced batted-ball outcomes that BABIP drops (homeruns, sac bunts, double play sac bunts) with NA values, excluding them from our BABIP calculation.
+
+  - *Batter_instance_identifier*: A single-line identifier that groups batter ID, year, stand, and fielding alignment, which allows for easy matching when manipulating dataframes. 
+  
+In order to promote consistency within our analysis, we decided to observe individual years with assumed independence. Thus, players who had 200 or more plate appearances in multiple years were included as separate player instances. We used 200 as our threshold for at bats because it allows for the calculation of more stable performance statistics for each player. 
+
+In order to account for switch hitters, we prefaced that the threshold of 200 or more plate appearances must be observed with a particular batting stance within a single season. If, for example, we observe a particular player with 200 or more at bats as a left-handed batter in addition to 200 or more at bats as a right-handed batter within a single season, this player will be included as two separate observations according to their stance. Given that both the **2020 season** (60 games played) and the **2022 season** (~90 games played as of July 13th, 2022) have significantly fewer observations using this threshold, we elected to exclude these years from our analysis. 
+
+# EDA
+
+During initial EDA, we discovered a high proportion of missing shift values in the Spring Training pitch data (~78%), as well as a low proportion of missing shift values in the Regular Season (~0.01%). From this, we chose to exclude the Spring Training data from each year, and all observations with missing shift values in either the infield or outfield alignment column. 
+
+In situations with a runner on third base and less than two outs, the infield may be shifted in. The strategic shift category contains a significant proportion of these scenarios - about 17% each of strategic-standard and strategic-strategic observations (infield-outfield). These situations often inflate offensive outcomes, as moving the infield-in shift promotes variance in run scoring to maximize win probability at the expense of expected runs allowed. To confirm this phenomenon, we looked at the differences in four offensive statistics - wOBA, BABIP, walk rate, and strikeout rate - between infield-in and non-infield-in situations. We used confidence intervals to verify that the differences were statistically significant:
+
+****** CONFIDENCE INTERVAL TABLE HERE ******
+
+To adjust for the influence of such situations, we decided to remove observations in which the infield could be shifted in. However, to ensure we were not excluding situations in which there was a runner on third base with less than two outs but the infield was not shifted in, we only removed the observations that fit the aforementioned condition and were marked as “shift”. 
+
+*** REMOVING OUTFIELD SHIFTS PLOT ***
+
+Within each batter-pitcher matchup, the proportion of observations in which the outfield is shifted is relatively low, regardless of the alignment of the infield. This, in addition to Dr. Brodie's advice on which situations exhibit the most prominent shifting influences, led us to focus primarily on infield shifting alignment.
+
+***SUMMARY STATISTICS STATS WITHIN HANDEDNESS AND SHIFT***
+
+```{r}
+statcast_at_bat_model_data %>%
+  mutate(game_year = as.numeric(game_year)) %>%
+  mutate(game_year = case_when(game_year == 1 ~ 2015,
+                               game_year == 2 ~ 2016,
+                               game_year == 3 ~ 2017,
+                               game_year == 4 ~ 2018,
+                               game_year == 5 ~ 2019,
+                               game_year == 6 ~ 2021)) %>%
+  group_by(game_year, stand, if_fielding_alignment) %>%
+  summarize(avg_woba = mean(woba, na.rm = TRUE),
+            .groups = "drop") %>%
+  ggplot(aes(x = game_year, y = avg_woba, color = if_fielding_alignment)) +
+  geom_line() +
+  labs(x = "Year", y = "wOBA") +
+  #scale_x_break(2020) +
+  scale_x_continuous(breaks = seq(2015, 2021, 1)) +
+  scale_y_continuous(breaks = seq(0.325, 0.400, 0.01)) +
+  facet_wrap(~stand)
+
+# Left-handed table
+shift_count_table %>%
+  filter(stand == "L") %>%
+  select(-if_fielding_alignment, -stand) %>%
+  kable(col.names = c("Year", "Shifted Plate Appearances (L)", "Proportion of Total PAs"))
+
+# Right-handed table
+shift_count_table %>%
+  filter(stand == "R") %>%
+  select(-if_fielding_alignment, -stand) %>%
+  kable(col.names = c("Year", "Shifted Plate Appearances (R)", "Proportion of Total PAs"))
+```
+
+
+Confirming the 
+
+## Methodology
+
+For our methodology, we focused on the trends of two offensive statistics: **wOBA** and **BABIP**. Both were provided at the pitch level, but we only focused on each value at the end of an at-bat, as those instances involved the actual effect of the shift. 
+
+## Results
+
+## Discussion
+
+### Limitations 
+
+We encountered several limitations with our exploratory work:
+
+  - We elected to exclude observations from both 2020 and 2022, as both years did not include a full season’s worth of pitch data, and thus did not sufficiently represent year-long trends. 
+
+  - The shifting categories are very broad and the differences between shift groupings is not distinct. Similarly, we did not have player positional information. Both of these limited our overall understanding of the specifics of each shift. 
+
+  - Due to how we have handled players playing for multiple seasons and switch hitters we have violated independence assumptions. Because of this, we must be careful in assessing our conclusions.
+
+### Future Work 
+
+For future work, we have considered within-batter matching (more specifically, propensity score matching) to further enhance our understanding of shifting trends and tendencies. This work would look into the probability of a shift taking place, thus better helping in-game decisions. 
+
+## Acknowledgements
+
+## Apendix
+
+### Missingness Table, Og breakdown of shift types
