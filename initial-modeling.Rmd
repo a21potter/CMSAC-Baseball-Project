@@ -16,6 +16,7 @@ library(glue)
 library(tidyverse)
 library(knitr)
 library(ranger)
+library(mgcv)
 ```
 
 ```{r}
@@ -156,15 +157,6 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
 ```{r}
 statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   mutate(batter_instance_identifier = paste(batter, game_year, stand, if_fielding_alignment, sep = ":")) 
-    
-statcast_training_data_rf_identifiers <- statcast_data_minus_2020_2022 %>%
-  select(game_year, batter, stand, if_fielding_alignment, batter_instance_identifier) %>%
-  unique() %>%
-  group_by(game_year, stand, if_fielding_alignment) %>%
-  sample_frac(.2)
-
-statcast_training_data <- statcast_data_minus_2020_2022 %>%
-  filter(batter_instance_identifier %in% statcast_training_data_rf_identifiers$batter_instance_identifier)
 ```
 
 
@@ -274,6 +266,26 @@ write_rds(statcast_data_at_bats_minus_2020_2022_woba, "data/statcast_at_bat_mode
 statcast_model_data <- read_rds("data/statcast_at_bat_model_data.rds")
 ```
 
+## Training and Testing Data
+
+```{r}
+statcast_model_data <- statcast_model_data %>%
+  mutate(batter_instance_identifier = paste(batter, game_year, stand, if_fielding_alignment, sep = ":")) 
+
+statcast_training_data_rf_identifiers <- statcast_model_data %>%
+  select(game_year, batter, stand, if_fielding_alignment, batter_instance_identifier) %>%
+  unique() %>%
+  group_by(game_year, stand, if_fielding_alignment) %>%
+  sample_frac(.8)
+
+statcast_training_data <- statcast_model_data %>%
+  filter(batter_instance_identifier %in% statcast_training_data_rf_identifiers$batter_instance_identifier)
+
+statcast_testing_data <- statcast_model_data %>%
+  filter(!batter_instance_identifier %in% statcast_training_data_rf_identifiers$batter_instance_identifier)
+```
+
+
 
 
 # Basic Linear Model
@@ -304,19 +316,45 @@ init_logistic_model <- glm(on_base_binary ~ general_pitch_type +
                           zone_simp + 
                           stand + 
                           p_throws+ 
-                          harmonic_mean_delta_woba + 
+                          delta_woba + 
                           p_throws * stand * if_fielding_alignment, 
-                        data = statcast_model_data, 
+                        data = statcast_training_data, 
                         family = "binomial")
 
 summary(init_logistic_model)
 
 ```
 
+## Run the untransformed logit output through a nonlinear logistic model
+
+```{r}
+statcast_training_data <- statcast_training_data %>%
+  drop_na(delta_woba)
+
+init_logit_gam <- gam(on_base_binary ~ s(init_logistic_model$fitted.values), data = statcast_training_data, family = "binomial")
+
+summary(init_logit_gam)
+```
+
+## Mutate fitted values from the logit function and the logit_gam
+
+```{r}
+statcast_training_data <- statcast_training_data %>%
+  mutate(logit_gam_prob = as.numeric(predict(init_logistic_model, newdata = statcast_testing_data, type = 'response')),
+         logistic_pred = init_logit_gam$fitted.values)
+```
+
+## Run predictions
+
+```{r}
+
+```
+
+
 ## Checking Linearity Assumption
 
 ```{r}
-statcast_data_at_bats_minus_2020_2022 %>%
+statcast_model_data %>%
   count(general_pitch_type, game_year, if_fielding_alignment, zone_simp, stand, p_throws) %>%
   #group_by(currentSmoker) %>%
   mutate(prop = n/sum(n)) %>%
@@ -338,14 +376,14 @@ init_logistic_model$linear.predictors
 
 ### Checking linearity condition ---
 library(Stat2Data)
-emplogitplot1(on_base_binary ~ harmonic_mean_delta_woba, data = statcast_data_at_bats_minus_2020_2022_woba, 
+emplogitplot1(on_base_binary ~ delta_woba, data = statcast_model_data, 
               ngroups = 10)
 ```
 
 ```{r}
-statcast_data_at_bats_minus_2020_2022_woba %>%
+statcast_model_data %>%
   ungroup() %>%
-  select(on_base_binary, harmonic_mean_delta_woba, general_pitch_type, game_year, if_fielding_alignment, zone_simp, stand, p_throws) %>%
+  select(on_base_binary, delta_woba, general_pitch_type, game_year, if_fielding_alignment, zone_simp, stand, p_throws) %>%
   na.omit() %>%
   mutate(pred_prob = init_logistic_model$fitted.values) %>%
   ggplot(aes(x = init_logistic_model$linear.predictors)) +
@@ -364,7 +402,7 @@ plts = lapply(names(coefficients(init_logistic_model))[-1],function(i){
 
 wrap_plots(plts)
 
-statcast_data_at_bats_minus_2020_2022_woba %>%
+statcast_model_data  %>%
   group_by(batter, game_year, stand) %>%
   count(on_base_binary) %>%
   select()
