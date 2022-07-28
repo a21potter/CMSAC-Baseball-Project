@@ -28,6 +28,11 @@ conf_int_table_no_3B <- readRDS("data/tables/conf_int_table_no_3B.RDS")
 
 # OF Alignment Bar Plot
 removing_OF <- readRDS("data/tables/removing_OF.RDS")
+
+# Modeling Plots
+logit_model_plot_main <- read_rds("data/tables/logit_model_plot_main.rds")
+
+logit_model_plot_facted <- read_rds("data/tables/logit_model_plot_faceted.rds")
 ```
 
 ## Introduction {.tabset}
@@ -249,6 +254,15 @@ We also created an indicator to reduce at-bat outcomes to binary.
 
 
 ### Logistic - Binary At-Bat Outcomes
+
+```{r}
+logit_model_plot_main
+```
+
+```{r}
+logit_model_plot_faceted
+```
+
 
 To model offensive outcomes at the at-bat level, we used several explanatory variables and interactions:
 
