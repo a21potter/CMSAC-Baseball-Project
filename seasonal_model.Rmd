@@ -65,9 +65,35 @@ library(ggfortify)
 autoplot(seasonal_lm)
 ```
 
-
+### 
 
 ## Plot
 
-
+```{r}
+seasonal_data %>%
+  #ungroup() %>%
+  drop_na() %>%
+  mutate(pred_delta_woba = seasonal_lm$fitted.values) %>%
+         #,
+         #bin_pred_prob = round(pred_prob / 0.01) * .01) %>%
+  # Group by bin_pred_prob:
+  #group_by(bin_pred_prob) %>%
+  # Calculate the calibration results:
+ # summarize(#n_attempts = n(),
+  #          bin_actual_prob = mean(on_base_binary)) %>%
+  ggplot(aes(x = pred_delta_woba, y = delta_woba)) +
+  geom_point() +
+  geom_smooth(method = "loess", se = FALSE) +
+  geom_abline(slope = 1, intercept = 0, 
+              color = "black", linetype = "dashed") +
+  #facet_wrap(~ if_fielding_alignment) +
+  coord_equal() + 
+  scale_x_continuous(limits = c(-.1,.1)) + 
+  scale_y_continuous(limits = c(-.1,.1)) + 
+  labs(size = "Number of At-Bats",
+       x = "Estimated Probability of Getting On Base",
+       y = "Observed Probability of Getting On Base") + 
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
 
