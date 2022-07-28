@@ -267,6 +267,11 @@ confint(runner_on_third_conf_int, level = 0.95) %>%
 no_runner_on_third_conf_int <- lm(woba ~ 1, no_runner_on_third_data)
 confint(no_runner_on_third_conf_int, level = 0.95) %>%
   kable()
+
+# Save for report
+saveRDS(runner_on_third_conf_int, file = "data/tables/conf_int_table_3B.RDS") 
+
+saveRDS(no_runner_on_third_conf_int, file = "data/tables/conf_int_table_no_3B.RDS")
 ```
 
 Based on these, we filtered out all Infield-in Scenarios (runner on third, less than two outs)
