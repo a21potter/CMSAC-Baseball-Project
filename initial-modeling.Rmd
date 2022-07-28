@@ -279,10 +279,14 @@ statcast_training_data_rf_identifiers <- statcast_model_data %>%
   sample_frac(.8)
 
 statcast_training_data <- statcast_model_data %>%
-  filter(batter_instance_identifier %in% statcast_training_data_rf_identifiers$batter_instance_identifier)
+  filter(batter_instance_identifier %in% statcast_training_data_rf_identifiers$batter_instance_identifier) %>%
+  mutate(is_train = 1)
 
 statcast_testing_data <- statcast_model_data %>%
-  filter(!batter_instance_identifier %in% statcast_training_data_rf_identifiers$batter_instance_identifier)
+  filter(!batter_instance_identifier %in% statcast_training_data_rf_identifiers$batter_instance_identifier) %>%
+  mutate(is_train = 0)
+
+statcast_train_test_model_data <- rbind(statcast_training_data, statcast_testing_data)
 ```
 
 
@@ -321,9 +325,21 @@ init_logistic_model <- glm(on_base_binary ~ general_pitch_type +
                         data = statcast_training_data, 
                         family = "binomial")
 
-summary(init_logistic_model)
+#summary(init_logistic_model)
 
+library(mgcv)
+init_logit_gam <- gam(on_base_binary ~ s(init_logistic_model$fitted.values), data = statcast_training_data, family = "binomial")
+
+
+init_logistic_model$fitted.values %>%
+
+statcast_training_data %>%
+  drop_na() %>%
+  nrow()
 ```
+
+
+
 
 ## Run the untransformed logit output through a nonlinear logistic model
 
@@ -331,7 +347,13 @@ summary(init_logistic_model)
 statcast_training_data <- statcast_training_data %>%
   drop_na(delta_woba)
 
-init_logit_gam <- gam(on_base_binary ~ s(init_logistic_model$fitted.values), data = statcast_training_data, family = "binomial")
+
+
+
+
+statcast_training_data %>%
+  drop_na() %>%
+  
 
 summary(init_logit_gam)
 ```
@@ -340,14 +362,20 @@ summary(init_logit_gam)
 
 ```{r}
 statcast_training_data <- statcast_training_data %>%
-  mutate(logit_gam_prob = as.numeric(predict(init_logistic_model, newdata = statcast_testing_data, type = 'response')),
-         logistic_pred = init_logit_gam$fitted.values)
+  drop_na(woba_value) %>%
+  mutate(logit_transformed_output = as.numeric(predict(init_logistic_model, newdata = statcast_training_data, type = 'response'))) %>%
+  mutate(logit_transformed_output_gam = as.numeric(predict(init_logit_gam, data = statcast_training_data, type = "response")))
 ```
 
 ## Run predictions
 
 ```{r}
-
+statcast_training_data <- statcast_training_data %>%
+  mutate(predict_on_base_prob = 
+           as.numeric(predict(init_logit_gam,
+                              newdata = statcast_training_data,
+                              type = "response")),
+         init_gam_onbase_class = as.numeric(predict_on_base_prob >= 0.5))
 ```
 
 
