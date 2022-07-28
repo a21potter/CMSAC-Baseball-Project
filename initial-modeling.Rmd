@@ -147,7 +147,8 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   mutate(bb_rate = sum(walk) / length(which(last_pitch_of_at_bat == TRUE)),
             k_rate = sum(strikeout) / length(which(last_pitch_of_at_bat == TRUE)),
             babip = mean(babip_value_with_NAs, na.rm = TRUE),
-            woba = sum(woba_value, na.rm = TRUE) / length(which(last_pitch_of_at_bat == TRUE)))
+            woba = sum(woba_value, na.rm = TRUE) / length(which(last_pitch_of_at_bat == TRUE))) %>%
+  ungroup()
 ```
 
 # Training set
@@ -235,19 +236,25 @@ delta_woba_vector <- statcast_data_at_bats_minus_2020_2022 %>%
   # harmonic mean delta woba
   mutate(harmonic_mean_delta_woba = ((2 * total_player_at_bats * lead(total_player_at_bats)) / total_player_at_bats + lead(total_player_at_bats)) * delta_woba) %>%
   mutate(harmonic_mean_delta_woba = ifelse(is.na(harmonic_mean_delta_woba), lag(harmonic_mean_delta_woba), harmonic_mean_delta_woba)) %>%
-  select(batter_identifier, delta_woba, harmonic_mean_delta_woba)
+  select(batter_identifier, delta_woba, harmonic_mean_delta_woba) 
+
+
+
+
 
   
 
-statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %>%
+statcast_data_at_bats_minus_2020_2022_woba <- statcast_data_at_bats_minus_2020_2022 %>%
   mutate(batter_identifier = paste(batter, game_year, stand, sep = ":")) %>%
-  left_join(delta_woba_vector, by = c("batter_identifier" = "batter_identifier", "game_year" = "game_year", "batter" = "batter", "stand" = "stand"))
+  left_join(delta_woba_vector, by = c("batter_identifier" = "batter_identifier", "game_year" = "game_year", "batter" = "batter", "stand" = "stand")) %>%
+  select(pitch_id, batter, events, description, stand, p_throws, game_year, hit_distance_sc, launch_speed, launch_angle, if_fielding_alignment, pitch_outcome, game_id, general_pitch_type, total_player_at_bats, bb_rate, k_rate, babip, woba_value, woba, zone_simp, delta_woba, harmonic_mean_delta_woba) %>%
+  unique()
 ```
 
 ## Binary At-Bat Outcome
 
 ```{r}
-statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %>%
+statcast_data_at_bats_minus_2020_2022_woba <- statcast_data_at_bats_minus_2020_2022_woba %>%
   mutate(on_base_binary = case_when(woba_value == 0 ~ 0,
                                     TRUE ~ 1))
 ```
@@ -256,8 +263,10 @@ statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %
 ## Write modified dataset as RDS
 
 ```{r}
-write_rds(statcast_data_at_bats_minus_2020_2022, "data/statcast_at_bat_model_data.rds", compress = "gz")
+write_rds(statcast_data_at_bats_minus_2020_2022_woba, "data/statcast_at_bat_model_data.rds", compress = "gz")
 ```
+
+
 
 
 # Basic Linear Model
@@ -272,11 +281,119 @@ init_linear_model <- lm(woba_value ~ general_pitch_type +
                           woba + 
                           p_throws * stand * if_fielding_alignment + 
                           zone * if_fielding_alignment * general_pitch_type, 
-                        data = statcast_data_at_bats_minus_2020_2022)
+                        data = statcast_data_at_bats_minus_2020_2022_woba)
 
 
 summary(init_linear_model)
 ```
+
+
+## Initial Logistic Model 
+
+```{r}
+init_logistic_model <- glm(on_base_binary ~ general_pitch_type + 
+                          game_year + 
+                          if_fielding_alignment + 
+                          zone_simp + 
+                          stand + 
+                          p_throws+ 
+                          harmonic_mean_delta_woba + 
+                          p_throws * stand * if_fielding_alignment, 
+                        data = statcast_data_at_bats_minus_2020_2022_woba, 
+                        family = "binomial")
+
+summary(init_logistic_model)
+
+init_logistic_model$fitted.values
+```
+
+## Checking Linearity Assumption
+
+```{r}
+statcast_data_at_bats_minus_2020_2022 %>%
+  count(general_pitch_type, game_year, if_fielding_alignment, zone_simp, stand, p_throws) %>%
+  #group_by(currentSmoker) %>%
+  mutate(prop = n/sum(n)) %>%
+  #filter(high_risk == "1") %>%
+  mutate(emp_logit = log(prop/(1-prop)))
+```
+
+
+```{r}
+library(ggfortify)
+autoplot(init_logistic_model, which = 4, ncol = 1)
+
+### Looking at multicolinearity
+library(rms)
+vif(init_logistic_model) %>%
+  kable()
+
+init_logistic_model$linear.predictors
+
+### Checking linearity condition ---
+library(Stat2Data)
+emplogitplot1(on_base_binary ~ harmonic_mean_delta_woba, data = statcast_data_at_bats_minus_2020_2022_woba, 
+              ngroups = 10)
+```
+
+```{r}
+statcast_data_at_bats_minus_2020_2022_woba %>%
+  ungroup() %>%
+  select(on_base_binary, harmonic_mean_delta_woba, general_pitch_type, game_year, if_fielding_alignment, zone_simp, stand, p_throws) %>%
+  na.omit() %>%
+  mutate(pred_prob = init_logistic_model$fitted.values) %>%
+  ggplot(aes(x = init_logistic_model$linear.predictors)) +
+  geom_point(aes(y = pred_prob), 
+            color = "blue") +
+  geom_point(aes(y = on_base_binary), 
+             alpha = 0.05,
+             color = "darkorange") +
+  theme_bw()
+
+library(patchwork)
+library(ggeffects)
+plts = lapply(names(coefficients(init_logistic_model))[-1],function(i){
+       return(plot(ggpredict(init_logistic_model,i)))
+       })
+
+wrap_plots(plts)
+
+statcast_data_at_bats_minus_2020_2022_woba %>%
+  group_by(batter, game_year, stand) %>%
+  count(on_base_binary) %>%
+  select()
+```
+
+
+Assumption #1: The Response Variable is Binary, Yes
+
+Assumption #2: The Observations are Independent, Not quite
+
+Assumption #3: There is No Multicollinearity Among Explanatory Variables, no multicolinearity
+
+Assumption #4: There are No Extreme Outliers
+
+Assumption #5: There is a Linear Relationship Between Explanatory Variables and the Logit of the Response Variable ???
+
+Assumption #6: The Sample Size is Sufficiently Large
+
+```{r}
+ggplot(data = statcast_data_at_bats_minus_2020_2022, aes(x = harmonic_mean_delta_woba)) +
+  geom_histogram()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 When shifting takes place, how is wOBA affected?
