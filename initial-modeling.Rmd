@@ -188,6 +188,7 @@ statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %
          #zone = as.factor(zone)) %>%
   mutate(stand = factor(stand, levels = c("R", "L")),
          p_throws = factor(p_throws, levels = c("R", "L")),
+         general_pitch_type = factor(general_pitch_type, levels = c("Fastball", "Breaking Ball", "Changeup", "Knuckle Ball")),
          if_fielding_alignment = factor(if_fielding_alignment, levels = c("Standard", "Shift")))
 ```
 
@@ -281,12 +282,12 @@ statcast_model_data <- read_rds("data/statcast_at_bat_model_data.rds")
 init_linear_model <- lm(woba_value ~ general_pitch_type + 
                           game_year + 
                           if_fielding_alignment + 
-                          zone + 
+                          zone_simp + 
                           stand+ 
                           p_throws+ 
                           woba + 
                           p_throws * stand * if_fielding_alignment + 
-                          zone * if_fielding_alignment * general_pitch_type, 
+                          zone_simp * if_fielding_alignment * general_pitch_type, 
                         data = statcast_model_data)
 
 
@@ -380,7 +381,7 @@ statcast_model_data %>%
   # Group by bin_pred_prob:
   group_by(bin_pred_prob) %>%
   # Calculate the calibration results:
-  summarize(n_attempts = n(),
+  summarise(n_attempts = n(),
             bin_actual_prob = mean(on_base_binary)) %>%
   ggplot(aes(x = bin_pred_prob, y = bin_actual_prob)) +
   geom_point(aes(size = n_attempts)) +
@@ -391,13 +392,76 @@ statcast_model_data %>%
   coord_equal() + 
   scale_x_continuous(limits = c(.2,.5)) + 
   scale_y_continuous(limits = c(.2,.5)) + 
-  labs(size = "Number of Players",
+  labs(size = "Number of At-Bats",
        x = "Estimated Probability of Getting On Base",
        y = "Observed Probability of Getting On Base") + 
   theme_bw() +
   theme(legend.position = "bottom")
 ```
 
+
+```{r}
+statcast_model_data %>%
+  ungroup() %>%
+  drop_na(delta_woba) %>%
+  mutate(pred_prob = init_logistic_model$fitted.values,
+         bin_pred_prob = round(pred_prob / 0.01) * .01) %>%
+  # Group by bin_pred_prob:
+  group_by(stand, bin_pred_prob) %>%
+  # Calculate the calibration results:
+  summarise(n_attempts = n(),
+            bin_actual_prob = mean(on_base_binary)) %>%
+  ggplot(aes(x = bin_pred_prob, y = bin_actual_prob)) +
+  geom_point(aes(size = n_attempts)) +
+  geom_smooth(method = "loess", se = FALSE) +
+  geom_abline(slope = 1, intercept = 0, 
+              color = "black", linetype = "dashed") +
+  facet_wrap(~ stand) +
+  coord_equal() + 
+  scale_x_continuous(limits = c(.2,.5)) + 
+  scale_y_continuous(limits = c(.2,.5)) + 
+  labs(size = "Number of At-Bats",
+       x = "Estimated Probability of Getting On Base",
+       y = "Observed Probability of Getting On Base") + 
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+
+### Why the three groups?
+
+```{r}
+statcast_model_data %>%
+  ungroup() %>% 
+  drop_na(delta_woba) %>%
+  mutate(predicted_on_base_probability = init_logistic_model$fitted.values) %>%
+  #group_by(zone_simp) %>%
+  summarize(residual = on_base_binary - predicted_on_base_probability,
+            general_pitch_type) %>%
+  group_by(general_pitch_type) %>%
+  summarize(avg_residual = mean(residual))
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+statcast_model_data %>%
+  ungroup() %>% 
+  drop_na(delta_woba) %>%
+  mutate(predicted_on_base_probability = init_logistic_model$fitted.values) %>%
+  group_by(game_year) %>%
+  #count()
+  ggplot(aes(x = predicted_on_base_probability, y = on_base_binary, color = if_fielding_alignment)) +
+  geom_point(alpha = .1) + 
+  facet_wrap(game_year ~ stand)
+```
 
 
 Assumption #1: The Response Variable is Binary, Yes
