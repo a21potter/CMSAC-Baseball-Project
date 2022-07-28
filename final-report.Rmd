@@ -123,12 +123,15 @@ rbind(prop_shift_left, prop_shift_right) %>%
   ggplot(aes(x = as.numeric(game_year) + 2014, y = prop_at_bats_shifted, color = stand)) +
   geom_line() +
   scale_y_continuous(breaks = seq(0, 0.600, 0.100)) +
-  labs(title = "Shifting Trends Since 2015", x = "Year", y = "Proportion of Shifted PAs",
-       color = "Stand")
+  labs(title = "Shifting Trends Since 2015", x = "Season", y = "Proportion of Shifted PAs",
+       color = "Stand") +
+  theme_bw()
 ```
 
 
 During initial EDA, we discovered a high proportion of missing shift values in the Spring Training pitch data (~78%), as well as a low proportion of missing shift values in the Regular Season (~0.01%). From this, we chose to exclude the Spring Training data from each year, and all observations with missing shift values in either the infield or outfield alignment column. 
+
+Within each batter-pitcher matchup, the proportion of observations in which the outfield is shifted is relatively low, regardless of the alignment of the infield. This, in addition to Dr. Brodie's advice on which situations exhibit the most prominent shifting influences, led us to focus primarily on infield shifting alignment.
 
 In situations with a runner on third base and less than two outs, the infield may be shifted in. The strategic shift category contains a significant proportion of these scenarios - about 17% each of strategic-standard and strategic-strategic observations (infield-outfield). These situations often inflate offensive outcomes, as moving the infield-in shift promotes variance in run scoring to maximize win probability at the expense of expected runs allowed. To confirm this phenomenon, we looked at the differences in four offensive statistics - wOBA, BABIP, walk rate, and strikeout rate - between infield-in and non-infield-in situations. We used confidence intervals to verify that the differences were statistically significant:
 
@@ -147,9 +150,6 @@ confint(conf_int_table_no_3B, level = 0.95) %>%
 ```
 
 To adjust for the influence of such situations, we decided to remove observations in which the infield could be shifted in. However, to ensure we were not excluding situations in which there was a runner on third base with less than two outs but the infield was not shifted in, we only removed the observations that fit the aforementioned condition and were marked as “shift”. 
-
-
-Within each batter-pitcher matchup, the proportion of observations in which the outfield is shifted is relatively low, regardless of the alignment of the infield. This, in addition to Dr. Brodie's advice on which situations exhibit the most prominent shifting influences, led us to focus primarily on infield shifting alignment.
 
 ```{r}
 # BABIP over time
