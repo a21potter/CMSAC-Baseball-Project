@@ -94,6 +94,14 @@ statcast_data %>%
   kable(col.names = c("Batter Handedness", "Pitcher Handedness", "Count", "Percentage"))
 ```
 
+```{r}
+statcast_data %>%
+count(game_year, stand, if_fielding_alignment) %>%
+  filter(if_fielding_alignment != "Standard") %>%
+  arrange(by_group = stand)
+```
+
+
 ### Percent Missingness of Shift Variable by Game Type
 
 ```{r}
@@ -259,6 +267,11 @@ confint(runner_on_third_conf_int, level = 0.95) %>%
 no_runner_on_third_conf_int <- lm(woba ~ 1, no_runner_on_third_data)
 confint(no_runner_on_third_conf_int, level = 0.95) %>%
   kable()
+
+# Save for report
+saveRDS(runner_on_third_conf_int, file = "data/tables/conf_int_table_3B.RDS") 
+
+saveRDS(no_runner_on_third_conf_int, file = "data/tables/conf_int_table_no_3B.RDS")
 ```
 
 Based on these, we filtered out all Infield-in Scenarios (runner on third, less than two outs)
@@ -290,6 +303,19 @@ statcast_data <- statcast_data %>%
                      of_fielding_alignment == "Strategic" |
                        of_fielding_alignment == "Standard" ~ "Standard"))
 ```
+
+- Create table with shift counts by stand
+
+```{r}
+shift_count_table <- statcast_data %>%
+count(game_year, stand, if_fielding_alignment) %>%
+  mutate(prop = n/sum(n)) %>%
+  filter(!game_year %in% c("2020","2022"), if_fielding_alignment != "Standard") %>%
+  arrange(by_group = stand)
+
+saveRDS(shift_count_table, file = "data/shift_count_table.RDS") 
+```
+
 
 - Viewing percentages of general fielding alignments based on handedness
 
