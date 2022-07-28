@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-```{r}
+```{r, include = FALSE}
 # Load baseballr, Other Packages, and Data
 
 library(baseballr)
@@ -125,6 +125,8 @@ Within each batter-pitcher matchup, the proportion of observations in which the 
 
 ***SUMMARY STATISTICS STATS WITHIN HANDEDNESS AND SHIFT***
 
+BABIP Over Time
+
 ```{r}
 # BABIP over time
 statcast_at_bat_model_data %>%
@@ -144,8 +146,11 @@ statcast_at_bat_model_data %>%
   #scale_x_break(2020) +
   scale_x_continuous(breaks = seq(2015, 2021, 1)) +
   scale_y_continuous(breaks = seq(0.235, 0.350, 0.01)) +
-  facet_wrap(~stand)
-
+  facet_wrap(~stand) +
+  theme_bw()
+```
+wOBA Over Time
+```{r}
 # wOBA over time
 statcast_at_bat_model_data %>%
   mutate(game_year = as.numeric(game_year)) %>%
@@ -164,8 +169,13 @@ statcast_at_bat_model_data %>%
   #scale_x_break(2020) +
   scale_x_continuous(breaks = seq(2015, 2021, 1)) +
   scale_y_continuous(breaks = seq(0.325, 0.400, 0.01)) +
-  facet_wrap(~stand)
+  facet_wrap(~stand) +
+  theme_bw()
+```
 
+Shifted PAs
+
+```{r}
 # Left-handed table
 shift_count_table %>%
   filter(stand == "L") %>%
