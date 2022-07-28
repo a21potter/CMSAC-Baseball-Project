@@ -1,0 +1,73 @@
+---
+title: "seasonal_model"
+author: "Amber Potter"
+date: "7/27/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Load libraries and data
+```{r}
+library(baseballr)
+library(glue)
+library(tidyverse)
+library(knitr)
+library(ranger)
+```
+
+
+## Read data
+
+```{r}
+statcast_model_data <- read_rds("data/statcast_at_bat_model_data.rds")
+```
+
+## Season level variables
+
+```{r}
+seasonal_data <- statcast_model_data %>%
+  group_by(batter, game_year, stand, p_throws) %>%
+  summarize(avg_hit_distance = mean(hit_distance_sc, na.rm = TRUE),
+            avg_launch_angle = mean(launch_angle, na.rm = TRUE),
+            avg_launch_speed = mean(launch_speed, na.rm = TRUE),
+            prop_shift = mean(if_fielding_alignment == "Shift"),
+            prop_outside_pitches = mean(zone_simp == "Outside"),
+            prop_inside_pitches = mean(zone_simp == "Inside"),
+            bb_rate = mean(bb_rate),
+            k_rate = mean(k_rate),
+            delta_woba = mean(delta_woba),
+            prop_breaking_ball = mean(general_pitch_type == "Breaking Ball"),
+            .groups = "drop") %>%
+  select(- batter)
+```
+
+## Seasonal model
+
+
+```{r}
+seasonal_data %>%
+  ggplot(aes(x = delta_woba)) +
+  geom_histogram()
+```
+
+
+```{r}
+seasonal_lm <- lm(delta_woba ~ . + prop_breaking_ball * p_throws * stand + prop_shift * stand - delta_woba, data = seasonal_data)
+
+summary(seasonal_lm)
+
+
+library(ggfortify)
+autoplot(seasonal_lm)
+```
+
+
+
+## Plot
+
+
+
