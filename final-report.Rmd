@@ -286,7 +286,9 @@ We encountered several limitations with our exploratory work:
 
 ### Future Work 
 
-For future work, we have considered within-batter matching (more specifically, propensity score matching) to further enhance our understanding of shifting trends and tendencies. This work would look into the probability of a shift taking place, thus better helping in-game decisions. 
+For future work, we have considered within-batter matching (more specifically, propensity score matching) to further enhance our understanding of shifting trends and tendencies. This work would look into the probability of a shift taking place, thus better helping in-game decisions. It would also take into account the factors that influence the potential for a shift and help us look into what motivates a shift, controlled by batter.
+
+A separate question that we came across was looking at the
 
 ## Acknowledgements
 
