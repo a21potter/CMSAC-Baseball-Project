@@ -32,7 +32,7 @@ removing_OF <- readRDS("data/tables/removing_OF.RDS")
 # Modeling Plots
 logit_model_plot_main <- read_rds("data/tables/logit_model_plot_main.rds")
 
-logit_model_plot_facted <- read_rds("data/tables/logit_model_plot_faceted.rds")
+logit_model_plot_faceted <- read_rds("data/tables/logit_model_plot_faceted.rds")
 ```
 
 ## Introduction {.tabset}
@@ -255,32 +255,7 @@ We also created an indicator to reduce at-bat outcomes to binary.
 
 ### Logistic - Binary At-Bat Outcomes
 
-```{r}
-logit_model_plot_main
-```
 
-```{r}
-logit_model_plot_faceted
-```
-
-
-To model offensive outcomes at the at-bat level, we used several explanatory variables and interactions:
-
-  - Year
-  
-  - Pitch Type - **Fastball, Changeup,** and **Breaking-Ball**
-  
-  - Infield Fielding Alignment
-  
-  - Strikezone Location - **Inside, Middle, Outside,** or **Out of the Zone**
-  
-  - Batter/Pitcher Matchup by Handedness
-  
-  - The Interaction Between Batter Stand, Pitcher Handedness, and Infield Alignment
-  
-Initially, we were attempting to fit a nonlinear trend with a linear model. In this instance, the model will find the line with the best approximation, but it will be locally biased. The resulting pattern is **sigmoidal**, due to the transformation the results are passed through.
-
-From here, we were able to adjust the model using smooth nonlinear optimization - a GAM model. 
   
 ## Results
 
@@ -303,6 +278,35 @@ We encountered several limitations with our exploratory work:
 For future work, we have considered within-batter matching (more specifically, propensity score matching) to further enhance our understanding of shifting trends and tendencies. This work would look into the probability of a shift taking place, thus better helping in-game decisions. It would also take into account the factors that influence the potential for a shift and help us look into what motivates a shift, controlled by batter.
 
 A separate question that we came across was looking at the
+
+Logistic Regression with the Added GAM Model
+
+```{r, warning = FALSE}
+logit_model_plot_main
+```
+
+```{r, warning = FALSE}
+logit_model_plot_faceted
+```
+
+
+To model offensive outcomes at the at-bat level, we used several explanatory variables and interactions:
+
+  - Year
+  
+  - Pitch Type - **Fastball, Changeup,** and **Breaking-Ball**
+  
+  - Infield Fielding Alignment
+  
+  - Strikezone Location - **Inside, Middle, Outside,** or **Out of the Zone**
+  
+  - Batter/Pitcher Matchup by Handedness
+  
+  - The Interaction Between Batter Stand, Pitcher Handedness, and Infield Alignment
+  
+Initially, we were attempting to fit a nonlinear trend with a linear model. In this instance, the model will find the line with the best approximation, but it will be locally biased. The resulting pattern is **sigmoidal**, due to the transformation the results are passed through.
+
+From here, we were able to adjust the model using smooth nonlinear optimization - a GAM model. 
 
 ## Acknowledgements
 
