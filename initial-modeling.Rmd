@@ -325,38 +325,97 @@ init_logistic_model <- glm(on_base_binary ~ general_pitch_type +
                         data = statcast_training_data, 
                         family = "binomial")
 
-#summary(init_logistic_model)
+summary(init_logistic_model)
+# add fitted vals col
+statcast_training_data <- statcast_training_data %>%
+  drop_na(delta_woba) %>%
+  mutate(init_fitted_values = init_logistic_model$fitted.values)
 
+
+# 2 step modeling: gam
 library(mgcv)
-init_logit_gam <- gam(on_base_binary ~ s(init_logistic_model$fitted.values), data = statcast_training_data, family = "binomial")
+init_logit_gam <- gam(on_base_binary ~ s(statcast_training_data$init_fitted_values), data = statcast_training_data, family = "binomial")
+
+statcast_training_data <- statcast_training_data %>%
+  mutate(logit_transformed_output = as.numeric(predict(init_logit_gam, data = ., type = "response")))
 
 
-init_logistic_model$fitted.values %>%
-
-statcast_training_data %>%
-  drop_na() %>%
-  nrow()
 ```
-
-
-
-
-## Run the untransformed logit output through a nonlinear logistic model
 
 ```{r}
-statcast_training_data <- statcast_training_data %>%
-  drop_na(delta_woba)
+# MODEL OVERALL
+logit_model_plot_main <- statcast_training_data %>%
+  mutate(bin_pred_prob = round(logit_transformed_output / 0.01) * .01) %>%
+  # Group by bin_pred_prob:
+  group_by(bin_pred_prob) %>%
+  # Calculate the calibration results:
+  summarise(n_attempts = n(),
+            bin_actual_prob = mean(on_base_binary)) %>%
+  ggplot(aes(x = bin_pred_prob, y = bin_actual_prob)) +
+  geom_point(aes(size = n_attempts)) +
+  geom_smooth(method = "loess", se = FALSE) +
+  geom_abline(slope = 1, intercept = 0, 
+              color = "black", linetype = "dashed") +
+  coord_equal() + 
+  scale_x_continuous(limits = c(.2,.5)) + 
+  scale_y_continuous(limits = c(.2,.5)) + 
+  labs(size = "Number of At-Bats",
+       x = "Estimated Probability of Getting On Base",
+       y = "Observed Probability of Getting On Base") + 
+  theme_bw() +
+  theme(legend.position = "bottom")
 
-
-
-
-
-statcast_training_data %>%
-  drop_na() %>%
-  
-
-summary(init_logit_gam)
+write_rds(logit_model_plot_main, 
+          "data/tables/logit_model_plot_main.rds", compress = "gz")
 ```
+
+
+
+```{r}
+logit_model_plot_faceted <- statcast_training_data %>%
+  mutate(bin_pred_prob = round(logit_transformed_output / 0.01) * .01) %>%
+  # Group by bin_pred_prob:
+  group_by(stand, if_fielding_alignment, bin_pred_prob) %>%
+  # Calculate the calibration results:
+  summarise(n_attempts = n(),
+            bin_actual_prob = mean(on_base_binary)) %>%
+  ggplot(aes(x = bin_pred_prob, y = bin_actual_prob)) +
+  geom_point(aes(size = n_attempts)) +
+  geom_smooth(method = "loess", se = FALSE) +
+  geom_abline(slope = 1, intercept = 0, 
+              color = "black", linetype = "dashed") +
+  facet_grid(stand ~ if_fielding_alignment) +
+  coord_equal() + 
+  scale_x_continuous(limits = c(.2,.5)) + 
+  scale_y_continuous(limits = c(.2,.5)) + 
+  labs(size = "Number of At-Bats",
+       x = "Estimated Probability of Getting On Base",
+       y = "Observed Probability of Getting On Base") + 
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+write_rds(logit_model_plot_faceted, 
+          "data/tables/logit_model_plot_faceted.rds", compress = "gz")
+```
+
+## Effects of Explanatory variables
+
+```{r}
+
+
+```
+
+
+## Test on Hold Out data
+
+```{r}
+statcast_testing_data %>%
+  drop_na(delta_woba) %>%
+  #mutate(init_fitted_values = predict(init_logistic_model, newdata = ., type = "response")) %>%
+  mutate(test_logit_transformed = as.numeric(predict(init_logit_gam, newdata = ., type = "response")))
+  
+```
+
 
 ## Mutate fitted values from the logit function and the logit_gam
 
@@ -370,12 +429,13 @@ statcast_training_data <- statcast_training_data %>%
 ## Run predictions
 
 ```{r}
+avg_onbase_binary_outcome <- statcast_training_data %>%
+  summarize(mean_onbase_binary = mean(on_base_binary)) %>%
+  pull()
+
+
 statcast_training_data <- statcast_training_data %>%
-  mutate(predict_on_base_prob = 
-           as.numeric(predict(init_logit_gam,
-                              newdata = statcast_training_data,
-                              type = "response")),
-         init_gam_onbase_class = as.numeric(predict_on_base_prob >= 0.5))
+  mutate(init_gam_onbase_class = as.numeric(logit_transformed_output >= avg_onbase_binary_outcome))
 ```
 
 
