@@ -308,6 +308,8 @@ init_linear_model <- lm(woba_value ~ general_pitch_type +
 
 
 summary(init_linear_model)
+
+autoplot(init_linear_model)
 ```
 
 
@@ -320,12 +322,12 @@ init_logistic_model <- glm(on_base_binary ~ general_pitch_type +
                           zone_simp + 
                           stand + 
                           p_throws+ 
-                          delta_woba + 
+                          harmonic_mean_delta_woba + 
                           p_throws * stand * if_fielding_alignment, 
                         data = statcast_training_data, 
                         family = "binomial")
 
-summary(init_logistic_model)
+#summary(init_logistic_model)
 # add fitted vals col
 statcast_training_data <- statcast_training_data %>%
   drop_na(delta_woba) %>%
@@ -499,7 +501,7 @@ statcast_model_data  %>%
 
 
 ```{r}
-statcast_model_data %>%
+statcast_training_data %>%
   ungroup() %>%
   drop_na(delta_woba) %>%
   mutate(pred_prob = init_logistic_model$fitted.values,
