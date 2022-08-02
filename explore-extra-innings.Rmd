@@ -1,0 +1,234 @@
+---
+title: "explore-extra-innings"
+author: "Amber Potter"
+date: "8/2/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Load libraries and data
+
+```{r}
+library(baseballr)
+library(glue)
+library(tidyverse)
+library(knitr)
+library(ranger)
+library(mgcv)
+```
+
+## Exploring Extra Inning Situations
+
+```{r}
+statcast_data <- read_rds("data/statcast_data_clean.rds")
+
+names(statcast_data)[1] <- 'pitch_id'
+```
+
+# Filter out 2020 and 2022 seasons
+ 
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data %>%
+  filter(!(game_year %in% c(2020, 2022)))
+```
+
+
+# Reclassifying pitch type
+
+```{r, warning = FALSE, message = FALSE}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  filter(!is.na(pitch_type)) %>%
+  mutate(general_pitch_type = fct_recode(as.factor(pitch_type),
+                                        "Breaking Ball" = "CU",
+                                        "Fastball" = "FF",
+                                        "Breaking Ball" = "SL",
+                                        "Fastball" = "SI",
+                                        "Changeup" = "CH",
+                                        "Breaking Ball" = "KC",
+                                        "Fastball" = "FC",
+                                        "Fastball" = "FS",
+                                        "Non-Pitch" = "IN",
+                                        "Breaking Ball" = "FO",
+                                        "Other" = "",
+                                        "Changeup" = "EP",
+                                        "Knuckle Ball" = "KN",
+                                        "Non-Pitch" = "PO",
+                                        "Fastball" = "FA",
+                                        "Breaking Ball" = "SC",
+                                        "Breaking Ball" = "CS"))
+```
+
+# Create an indicator for the last pitch of an at-bat
+
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  group_by(game_id, batter, at_bat_number) %>%
+  #arrange(pitch_number) %>%
+  mutate(pitch_count = max(pitch_number),
+         last_pitch_of_at_bat = case_when(pitch_number == pitch_count ~ TRUE,
+                                          TRUE ~ FALSE)) %>%
+  ungroup()
+```
+
+# 200+ at bats (overall)
+
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  group_by(game_year, batter, stand) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
+  filter(total_player_at_bats >= 200)
+```
+
+## Strikeout labels
+
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  mutate(pitch_outcome = case_when(events != "" ~ events,
+                                   events == "" ~ description)) %>%
+  mutate(pitch_outcome = case_when(events == "strikeout" & description == "swinging_strike" ~ "strikeout_swinging",
+                                   events == "strikeout" & description == "called_strike" ~ "strikeout_called",
+                                   events == "strikeout" & !(description %in% c("swinging_strike", "called_strike")) ~ paste0("strikeout_other"),
+                                   TRUE ~ pitch_outcome))
+```
+
+
+# Filter out NA values in each field alignment category, extreme outfield shift, and spring training/exhibition games
+
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  filter(if_fielding_alignment != "", !of_fielding_alignment %in% c("", "Extreme outfield shift"), 
+         !game_type %in% c("S", "E")) # Filter NAs, ex. outfield shift, and ST/E games
+```
+
+# Filter out potential infield-in situations
+
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  filter(!(on_3b != "" & outs_when_up < 2 & if_fielding_alignment == "Shift"))
+```
+
+
+# Reduce shifting categories to shift vs standard
+
+```{r}
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  mutate(general_fielding_alignment = 
+           case_when(if_fielding_alignment == "Infield shift" |
+                       of_fielding_alignment == "4th outfielder" ~ "Shift",
+                     TRUE ~ "Standard"))
+
+# Reduce shifting subcategories to Standard vs Shift
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+  mutate(if_fielding_alignment = 
+           case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
+                     if_fielding_alignment == "Strategic" |
+                       if_fielding_alignment == "Standard"~ "Standard")) %>%
+  mutate(of_fielding_alignment = 
+           case_when(of_fielding_alignment == "4th outfielder" ~ "Shift",
+                     of_fielding_alignment == "Strategic" |
+                       of_fielding_alignment == "Standard" ~ "Standard"))
+```
+
+
+
+# Exploring the effects of extra innings on batting stats
+
+
+```{r}
+statcast_data_minus_2020_2022 %>%
+  # extra inning identifier
+  mutate(extra_inning_identifier = case_when(inning > 9 ~ TRUE,
+                                             TRUE ~ FALSE)) %>%
+  #
+  mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
+                                          TRUE ~ babip_value)) %>%
+  # filtering for 400+ at bats
+  group_by(game_year, batter) %>%
+  # effectively counting each at bat once
+  filter(last_pitch_of_at_bat == TRUE) %>%
+  # was the outcome of at bat a walk or strikeout
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  # summarizing statistics by batter in and out of this situation
+  group_by(game_year, batter, extra_inning_identifier) %>%
+  summarize(extra_inning_identifier,
+            bb_rate = mean(walk),
+        k_rate = mean(strikeout),
+        babip = mean(babip_value_with_NAs, na.rm = TRUE),
+        woba = mean(woba_value, na.rm = TRUE),
+        .groups = "drop") %>%
+  # only including each batter once in and out of this situation
+  unique() %>%
+  # summarizing offensive stats based on runner on third scenarios
+  group_by(game_year, extra_inning_identifier) %>%
+  summarize(bb_rate = mean(bb_rate), 
+          k_rate = mean(k_rate), 
+          babip = mean(babip, na.rm = TRUE), 
+          woba = mean(woba, na.rm = TRUE))
+```
+
+
+In extra innings, walk rate, strikeout rate, and BABIP are all consistently higher than regular 9 inning games. wOBA is almost completely lower in extra inning situations.
+
+IDK what this means for us.
+
+# Extra inning situations with a runner in scoring position
+
+```{r}
+statcast_data_minus_2020_2022 %>%
+  # extra inning identifier
+  mutate(extra_inning_scoring_position = case_when(inning > 9 & (on_3b != "" | on_2b != "") &  outs_when_up < 2~ TRUE,
+                                             TRUE ~ FALSE)) %>%
+  # recalculate babip with hrs and sac bunts removed
+  mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
+                                          TRUE ~ babip_value)) %>%
+  # filtering for 400+ at bats
+  group_by(game_year, batter) %>%
+  # effectively counting each at bat once
+  filter(last_pitch_of_at_bat == TRUE) %>%
+  # was the outcome of at bat a walk or strikeout
+  mutate(walk = case_when(events == "walk" ~ 1,
+                          TRUE ~ 0),
+         strikeout = case_when(events == "strikeout" ~ 1,
+                               TRUE ~ 0)) %>%
+  # summarizing statistics by batter in and out of this situation
+  group_by(game_year, batter, extra_inning_scoring_position) %>%
+  summarize(extra_inning_scoring_position,
+            bb_rate = mean(walk),
+        k_rate = mean(strikeout),
+        babip = mean(babip_value_with_NAs, na.rm = TRUE),
+        woba = mean(woba_value, na.rm = TRUE),
+        .groups = "drop") %>%
+  # only including each batter once in and out of this situation
+  unique() %>%
+  # summarizing offensive stats based on runner on third scenarios
+  group_by(game_year, extra_inning_scoring_position) %>%
+  summarize(bb_rate = mean(bb_rate), 
+          k_rate = mean(k_rate), 
+          babip = mean(babip, na.rm = TRUE), 
+          woba = mean(woba, na.rm = TRUE))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
