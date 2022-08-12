@@ -1,12 +1,12 @@
 ---
 title: "Determining the Critical Influences on the Offensive Outcomes of Shifted At-Bats"
 author: "Nicholas Esposito and Amber Potter"
-date: "7/27/2022"
+date: "7/28/2022"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 ```
 
 ```{r, include = FALSE}
@@ -55,7 +55,7 @@ Per MLB, shifting describes the situational defensive realignment of fielders aw
 
   **3. Strategic** - A catch-all category for positioning that does not fit either category.
   
-![](images/strategic_shift.png){width=50% height=50%}
+![](images/strategic_shift.png){width=40% height=40%}
   
 ## {-}
 
@@ -63,9 +63,7 @@ In recent years, the shift has become the topic of heated debate in the baseball
 
 Tom Tango looks into this in [The Psychology of the Infield Shift](https://batflipsandnerds.com/2021/02/03/the-psychology-of-the-infield-shift/), highlighting that wOBA is the main differentiator between the shift’s effect on righties versus lefties. Similar to on-base percentage, [wOBA](https://www.mlb.com/glossary/advanced-stats/weighted-on-base-average) expands further to account for how a player reached base. The value for each way of reaching base is determined by how much an event is worth relative to projected runs scored, so some outcomes (doubles) are worth more than others (singles). In Tango’s work, lefties displayed a lower wOBA when shifted against, while wOBA increases for righties, both relative to non-shifted situations. We will also look into [BABIP](https://www.mlb.com/glossary/advanced-stats/babip) which measures batting average exclusively on balls in play, excluding several batted-ball outcomes that do not involve the influence of the defense, such as homeruns. However, given the right-handed hitter phenomenon, wOBA is the primary statistic of interest for our analysis.
  
-## Data
-
-# The Dataset (CHnage this section name)
+## The `baseballr` Package
 
 For our work, we accessed pitch-by-pitch Statcast data from the [baseballR package (Bill Petti)](https://cran.r-project.org/web/packages/baseballr/baseballr.pdf). This dataset contained pitch-level information dating back to 2015, when Statcast technology was introduced in all 30 MLB stadiums, up to **July 13th, 2022**, which we declared the current season’s cutoff. The initial dataset had 93 variables per observation; however, during preprocessing, we performed several transformations to prepare the dataset for analysis:
 
@@ -113,7 +111,7 @@ In order to promote consistency within our analysis, we decided to observe indiv
 
 In order to account for switch hitters, we prefaced that the threshold of 200 or more plate appearances must be observed with a particular batting stance within a single season. If, for example, we observe a particular player with 200 or more at bats as a left-handed batter in addition to 200 or more at bats as a right-handed batter within a single season, this player will be included as two separate observations according to their stance. Given that both the **2020 season** (60 games played) and the **2022 season** (~90 games played as of July 13th, 2022) have significantly fewer observations using this threshold, we elected to exclude these years from our analysis. 
 
-# EDA
+## EDA
 
 While the MLB has had a steady rise in shifting overall, left-handed batters see the shift in a significantly higher proportion of their plate appearances than that of right-handed batters. 
 
@@ -239,7 +237,7 @@ Prior to modeling, we decided to create a more descriptive value capturing a pla
 
   - Rather than looking at differences in wOBA as an average across each season, we elected to calculate the delta value of wOBA at the batter level between shifted and non-shifted plate appearances.
   
-  - To weight the delta values by the quantity of plate appearances, we used the harmonic mean:
+  - To weigh the delta values by the quantity of plate appearances, we used the harmonic mean:
     
       $$
       H = \frac{2*PA_{shifted}*PA_{non-shifted}} {PA_{shifted} / PA_{non-shifted}}
@@ -264,16 +262,11 @@ Our first instinct was to try fitting a linear model to decribe at bat level wOB
   
   - Batter's Harmonic Mean Delta wOBA Value
   
-  *********** INSERT FAILED LINEAR*********
-  
-  However, as we assessed the conditions for this model, we realized that at bat level wOBA could not be modeled effectively by a linear model because it is not a continuous variable. Although it is numeric, it is discrete with different values corresponding to different at bat outcomes. In the residual plot below, we observed various linear patterns in the residuals. This prompted us to consider other methods of quantifying at bat outcomes.
-  
-  
-  MODEL AND AUTOPLOT*********
+However, as we assessed the conditions for this model, we realized that at bat level wOBA could not be modeled effectively by a linear model because it is not a continuous variable. Although it is numeric, it is discrete with different values corresponding to different at bat outcomes. In the residual plot below, we observed various linear patterns in the residuals. This prompted us to consider other methods of quantifying at bat outcomes.
 
 ### Quantifying At-Bat Outcomes
 
-  First we considered what we consider to be a successful at bat. We contemplated whether we should consider any method of getting on base or only batted balls. However, because any method of reaching a base is considered a success for the offensive team, we decided that getting on base would be considered a successful at bat outcome. Alternatively, we considered not getting on base to be an unsuccessful at bat outcome. Since we were able to reduce at bat outcomes to be binomial, this led us to the logistic regression.
+First we considered what we consider to be a successful at bat. We contemplated whether we should consider any method of getting on base or only batted balls. However, because any method of reaching a base is considered a success for the offensive team, we decided that getting on base would be considered a successful at bat outcome. Alternatively, we considered not getting on base to be an unsuccessful at bat outcome. Since we were able to reduce at bat outcomes to be binomial, this led us to the logistic regression.
 
 
 ### Logistic - Binary At-Bat Outcomes
@@ -284,7 +277,7 @@ As this model was our follow up to the aforementioned linear model, we included 
 
 To assess the fit of our logistic model to our data, we plotted our predicted probability of a successful at bat versus the observed probability of a successful at bat:
 
-****** plot with the three groups ********
+![](images/miscalibrated.png){width=50% height=50%}
 
 From this plot, we observed that our logistic regression resulted in three distinct groupings. It was evident that for both low and high probabilities of getting on base, our model was underpredicting and for moderate probabilities of getting on base our model was overpredicting.
 
@@ -293,9 +286,9 @@ Initially, we completed further EDA to determine if these groupings were influen
   
 ## Results
 
-As of yet, our modeling largely has inconclusive results. ______
+As of yet, our modeling largely has inconclusive results.
 
-Because of the motivation of this project being inference rather that predictability, many of our questions were touched upon through our exploration of the data. Especially since we were concerned with the differences between the outcomes of shifting for right-handed and left-handed batters, by plotting various trends over time we were able to visualize patterns.
+However, because of the motivation of this project being inference rather that predictability, many of our questions were touched upon through our exploration of the data. Especially since we were concerned with the differences between the outcomes of shifting for right-handed and left-handed batters, by plotting various trends over time we were able to visualize patterns.
 
 As we examined the reasoning for the widely accepted claim "shifts generally work better for left-handed batters and largely don't work for right-handed batters", we observed that the BABIP trends between both handedness of hitters did not reflect this. In both instances, hitters seeing the shift had a lower average BABIP.
 
@@ -321,47 +314,47 @@ We encountered several limitations with our exploratory work:
 
 ### Future Work 
 
-1. For future work, we have considered within-batter matching (more specifically, propensity score matching) to further enhance our understanding of shifting trends and tendencies. This work would look into the probability of a shift taking place, thus better helping in-game decisions. It would also take into account the factors that influence the potential for a shift and help us look into what motivates a shift, controlled by batter.
+1. We have considered within-batter matching (more specifically, propensity score matching) to further enhance our understanding of shifting trends and tendencies. This work would look into the probability of a shift taking place, thus better helping in-game decisions. It would also take into account the factors that influence the potential for a shift and help us look into what motivates a shift, controlled by batter.
 
 2. From our miscalibrated logistic regression, we concluded that the log-odds probability of getting on base could not be captured by a general linear model. Initially, we were attempting to fit a nonlinear trend with a linear model. In this instance, the model will find the line with the best approximation, but it will be locally biased. The resulting pattern is **sigmoidal**, due to the transformation the results are passed through.
 
-We have since started looking into two-step modeling to address this issue. From here, we were able to adjust the model using smooth nonlinear optimization - a GAM model. 
+    - We have since started looking into two-step modeling to address this issue. From here, we were able to adjust the model using smooth nonlinear optimization - a GAM model. 
 
-By running the untransformed logit output from our initial logistic regression through a nonlinear logistic model, we are better able to fit the trend of the log-odds of getting on base. Thus, we are proceeding by including the second step of passing our initial fitted values into a GAM function.
+    - By running the untransformed logit output from our initial logistic regression through a nonlinear logistic model, we are better able to fit the trend of the log-odds of getting on base. Thus, we are proceeding by including the second step of passing our initial fitted values into a GAM function.
 
-The resulting predicted probability of getting on base versus observed probability of getting on base plot eliminates the three distinct groupings seen earlier.
+    - The resulting predicted probability of getting on base versus observed probability of getting on base plot eliminates the three distinct groupings seen earlier.
 
 
-Logistic Regression with the Added GAM Model:
+### Logistic Regression with the Added GAM Model
 
 ```{r, warning = FALSE}
 logit_model_plot_main
 ```
 
-Additionally, we have begun looked into the breakdown of this predicted versus observed relationship by batter handedness and shift occurrence. However, we have not gotten as far as interpreting their patterns in context. This is why we include this as a part of our future work. 
+  - Additionally, we have begun looked into the breakdown of this predicted versus observed relationship by batter handedness and shift occurrence. However, we have not gotten as far as interpreting their patterns in context. This is why we include this as a part of our future work. 
 
 
-Observing the Residual Patterns by Batter-Handedness and In-Field Alignment:
+### Observing the Residual Patterns by Batter-Handedness and In-Field Alignment
 
 ```{r, warning = FALSE}
 logit_model_plot_faceted
 ```
 
-In the future, we would like to assess whether utilizing the two-step modeling with GAM behaves better on out of sample data. We would also like to try to isolate the reasons why there appears to be different patterns for over- and under-predicting for different shift use and batter handedness.
+  - In the future, we would like to assess whether utilizing the two-step modeling with GAM behaves better on out of sample data. We would also like to try to isolate the reasons why there appears to be different patterns for over- and under-predicting for different shift use and batter handedness.
 
 3. Lastly, as we observed the limited results we were getting by looking at all at bats by batters with over 200 at bats, we came up with the idea of isolating the influences on shifted plays only by only looking at such shifted plays. By restricting our sample in this way, the effects of the predictors would only be affecting the success of the of the shift. In a way, we would be trying to isolate which factors make shifts successful or unsuccessful in comparison to other shifted plays rather than plays in general.
 
-Using this sample to assess shifts for right-handed batters versus left-handed batters might be more insightful on determining why shifts are generally less successful.
-
-
-
-
-
-
+    - Using this sample to assess shifts for right-handed batters versus left-handed batters might be more insightful on determining why shifts are generally less successful.
 
 
 ## Acknowledgements
 
-## Apendix
+We would like to thank **Dr. Adam Brodie** for pitching this project idea to us and for taking the time to meet with us and offer guidance along the way. Also, thank you to **Dr. Ron Yurko** for directing this program and for all the help and suggestions along the way. 
 
-### Missingness Table, Og breakdown of shift types
+## References
+
+[Baseball Savant](https://baseballsavant.mlb.com/statcast_search?hfPT=&hfAB=&hfGT=R%7C&hfPR=&hfZ=&stadium=&hfBBL=&hfNewZones=&hfPull=&hfC=&hfSea=2022%7C&hfSit=&player_type=pitcher&hfOuts=&opponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt=&game_date_lt=&hfMo=&team=&home_road=&hfRO=&position=&hfInfield=&hfOutfield=&hfInn=&hfBBT=&hfFlag=&metric_1=&group_by=name&min_pitches=0&min_results=0&min_pas=0&sort_col=pitches&player_event_sort=api_p_release_speed&sort_order=desc#results)
+
+[Bill Petti's baseballR Package](https://cran.r-project.org/web/packages/baseballr/baseballr.pdf)
+
+[Glossary of Shifting Terms - MLB](https://www.mlb.com/glossary/statcast/shifts)

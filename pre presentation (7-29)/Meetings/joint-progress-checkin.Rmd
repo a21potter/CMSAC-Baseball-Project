@@ -320,10 +320,11 @@ saveRDS(shift_count_table, file = "data/shift_count_table.RDS")
 - Viewing percentages of general fielding alignments based on handedness
 
 ```{r}
-statcast_data %>%
+removing_OF <- statcast_data %>%
   count(stand, p_throws, if_fielding_alignment, of_fielding_alignment) %>%
-  mutate(prop = n/sum(n)) %>%
-  kable(col.names = c("Batter Handedness", "Pitcher Handedness", "Infield Alignment", "Outfield Alignment", "Count", "Percentage"))
+  mutate(prop = n/sum(n))
+
+saveRDS(removing_OF, file = "data/tables/removing_OF.RDS")
 ```
 
 
