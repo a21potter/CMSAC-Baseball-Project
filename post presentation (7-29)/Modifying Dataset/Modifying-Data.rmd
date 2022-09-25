@@ -1,0 +1,13 @@
+---
+title: "Mutating Data"
+author: "Amber Potter and Nicholas Esposito"
+date: "9/25/2022"
+output: html_document
+---
+
+PURPOSE: Here we we perform all modifications to the dataset (ex: mutating a new column)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
