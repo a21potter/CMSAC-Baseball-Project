@@ -1,5 +1,5 @@
 ---
-title: "Mutating Data"
+title: "Modifying Data"
 author: "Amber Potter and Nicholas Esposito"
 date: "9/25/2022"
 output: html_document
