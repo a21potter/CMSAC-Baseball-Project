@@ -19,6 +19,7 @@ library(tidyverse)
 library(knitr)
 library(ranger)
 library(mgcv)
+library(dplyr)
 ```
 
 ## Read in data
@@ -29,11 +30,11 @@ V2_statcast_data <- read_rds("post-presentation/V2_data/V2_statcast_data_clean.r
 
 ## Data Cleaning
 
-# Remove 2020 Data
+# Remove 2015-2018, 2020 Data
 
 ```{r}
 V2_statcast_data <- V2_statcast_data %>%
-  filter(!(game_year %in% c(2020)))
+  filter(!(game_year %in% c(2015, 2016, 2017, 2018, 2020)))
 ```
 
 
@@ -45,14 +46,15 @@ V2_statcast_data <- V2_statcast_data %>%
 # Data cleaning -----------------------------------------------------------
 
 # Clean the batting data - Remove N/As and fix strikeout cols
-V2_statcast_data <- V2_statcast_data[ , colSums(is.na(statcast_data_combined)) < nrow(statcast_data_combined)]
+#V2_statcast_data <- V2_statcast_data[ , colSums(is.na(V2_statcast_data)) < nrow(V2_statcast_data)]
+
+#V2_statcast_data <- V2_statcast_data[ , colSums(is.na(V2_statcast_data)) < nrow(V2_statcast_data)]
 
 V2_statcast_data <- V2_statcast_data %>%
   mutate(pitch_outcome = case_when(events != "" ~ events,
                                    events == "" ~ description)) %>%
   mutate(pitch_outcome = case_when(events == "strikeout" & description == "swinging_strike" ~ "strikeout_swinging",
                                    events == "strikeout" & description == "called_strike" ~ "strikeout_called",
-                                   events == "strikeout" & !(description %in% c("swinging_strike", "called_strike")) ~ paste0("strikeout_other"),
                                    TRUE ~ pitch_outcome),
          game_id = game_pk) %>%
   select(-game_pk)
@@ -60,7 +62,7 @@ V2_statcast_data <- V2_statcast_data %>%
 # Create at-bat counter and merge with original dataframe -----------------
 
 # Add at-bat column for batting data (1, 2, 3...)
-statcast_data_combined_at_bats <- V2_statcast_data %>%
+V2_statcast_data_combined_at_bats <- V2_statcast_data %>%
   count(game_id, batter, at_bat_number) %>%
   group_by(game_id, batter) %>%
   mutate(at_bat_of_game=1:n()) 
@@ -75,7 +77,7 @@ V2_statcast_data <- V2_statcast_data %>%
 # Reclassifying pitch type
 
 ```{r, warning = FALSE, message = FALSE}
-statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+V2_statcast_data <- V2_statcast_data %>%
   filter(!is.na(pitch_type)) %>%
   mutate(general_pitch_type = fct_recode(as.factor(pitch_type),
                                         "Breaking Ball" = "CU",
@@ -100,7 +102,7 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
 # Create an indicator for the last pitch of an at-bat
 
 ```{r}
-statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+V2_statcast_data <- V2_statcast_data %>%
   group_by(game_id, batter, at_bat_number) %>%
   #arrange(pitch_number) %>%
   mutate(pitch_count = max(pitch_number),
@@ -112,16 +114,16 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
 # 200+ at bats (overall)
 
 ```{r}
-statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
-  group_by(game_year, batter, stand) %>%
-  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
-  filter(total_player_at_bats >= 200)
+#V2_statcast_data <- V2_statcast_data %>%
+  #group_by(game_year, batter, stand) %>%
+  #mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
+  #filter(total_player_at_bats >= 200)
 ```
 
 # Filter out NA values in each field alignment category, extreme outfield shift, and spring training/exhibition games
 
 ```{r}
-statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+V2_statcast_data <- V2_statcast_data %>%
   filter(if_fielding_alignment != "", !of_fielding_alignment %in% c("", "Extreme outfield shift"), 
          !game_type %in% c("S", "E")) # Filter NAs, ex. outfield shift, and ST/E games
 ```
@@ -129,21 +131,21 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
 # Filter out potential infield-in situations
 
 ```{r}
-statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+V2_statcast_data <- V2_statcast_data %>%
   filter(!(on_3b != "" & outs_when_up < 2 & if_fielding_alignment == "Shift"))
 ```
 
 # Reduce shifting categories to shift vs standard
 
 ```{r}
-statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+V2_statcast_data <- V2_statcast_data %>%
   mutate(general_fielding_alignment = 
            case_when(if_fielding_alignment == "Infield shift" |
                        of_fielding_alignment == "4th outfielder" ~ "Shift",
                      TRUE ~ "Standard"))
 
 # Reduce shifting subcategories to Standard vs Shift
-statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+V2_statcast_data <- V2_statcast_data %>%
   mutate(if_fielding_alignment = 
            case_when(if_fielding_alignment == "Infield shift" ~ "Shift",
                      if_fielding_alignment == "Strategic" |
@@ -154,17 +156,17 @@ statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
                        of_fielding_alignment == "Standard" ~ "Standard"))
 ```
 
-# Adjust BABIP calculation to exclude NAs and variables not involved in finding BABIP
+# Adjust BABIP calculation to exclude NAs and variables not involved in finding BABIP (CASE_WHEN IS NOT WORKING)
 
 ```{r}
-statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+V2_statcast_data <- V2_statcast_data %>%
   mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
                                           TRUE ~ babip_value))
 ```
 
 
 ```{r}
-statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+V2_statcast_data <- V2_statcast_data %>%
 #  filter(last_pitch_of_at_bat == TRUE) %>%
   mutate(walk = case_when(events == "walk" ~ 1,
                           TRUE ~ 0),
