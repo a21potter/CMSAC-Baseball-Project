@@ -1,0 +1,81 @@
+---
+title: "Modeling"
+author: "Amber Potter and Nicholas Esposito"
+date: "10/26/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load in dataset
+
+```{r}
+library(baseballr)
+library(glue)
+library(tidyverse)
+library(knitr)
+library(ranger)
+library(mgcv)
+library(dplyr)
+library(ggfortify)
+library(broom)
+library(questionr)
+library(sjPlot)
+library(sjmisc)
+library(effects)
+library(pscl)
+library(caret)
+V2_statcast_data_modeling <- read_rds("post-presentation/V2_data/V2_statcast_data_modified.rds")
+
+V2_statcast_data_modeling <- V2_statcast_data_modeling %>%
+  mutate(woba_value = as.factor(woba_value))
+```
+
+# Split dataset by handedness
+
+```{r}
+V2_modeling_R <- V2_statcast_data_modeling %>%
+  filter(stand == "R") 
+
+V2_modeling_L <- V2_statcast_data_modeling %>%
+  filter(stand == "L")
+```
+
+
+# Logistic Modeling
+
+"Two populations we are exploring" -> Righties and Lefties
+
+Interactions with shifts for all predictors (ex: outs*if_fielding_alignment) EXCEPT PLAYER NAME
+
+Add proportion of pitch location
+
+Total # of pitches
+
+Control for player and year
+
+
+```{r}
+init_logistic_model <- glm(woba_value ~ p_throws +
+                             general_pitch_type +
+                             p_throws*general_fielding_alignment +
+                             general_pitch_type*general_fielding_alignment +
+                             player_name +
+                             game_year, 
+                        data = V2_modeling_R, 
+                        family = "binomial")
+
+summary(init_logistic_model)
+#tab_model(init_logistic_model, p.style = "numeric_stars", transform = NULL, ci_method="wald")
+```
+# Plot the results of the model
+
+```{r}
+pR2(init_logistic_model)
+```
+```{r}
+varImp(init_logistic_model)
+```
+

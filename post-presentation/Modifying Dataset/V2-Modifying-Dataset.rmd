@@ -175,7 +175,7 @@ V2_statcast_data <- V2_statcast_data %>%
   group_by(game_year, batter, stand, if_fielding_alignment) %>%
   mutate(bb_rate = sum(walk) / length(which(last_pitch_of_at_bat == TRUE)),
             k_rate = sum(strikeout) / length(which(last_pitch_of_at_bat == TRUE)),
-            babip = mean(babip_value_with_NAs, na.rm = TRUE),
+            babip = mean(babip_value, na.rm = TRUE),
             woba = sum(woba_value, na.rm = TRUE) / length(which(last_pitch_of_at_bat == TRUE))) %>%
   ungroup()
 ```
@@ -184,6 +184,6 @@ V2_statcast_data <- V2_statcast_data %>%
 ## Write as single RDS file
 
 ```{r}
-write_rds(V2_statcast_data, glue("V2_data/V2_statcast_data_modified.rds"), compress = "gz")
+write_rds(V2_statcast_data, glue("post-presentation/V2_data/V2_statcast_data_modified.rds"), compress = "gz")
 ```
 
