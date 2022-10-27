@@ -64,8 +64,7 @@ Control for player and year
 
 
 ```{r}
-init_logistic_model <- glm(on_base_binary ~ p_throws +
-                             general_pitch_type +
+init_logistic_model <- glm(on_base_binary ~ 
                              p_throws*general_fielding_alignment +
                              general_pitch_type*general_fielding_alignment +
                              pitch_outcome*general_fielding_alignment +
