@@ -31,6 +31,12 @@ V2_statcast_data_modeling <- read_rds("post-presentation/V2_data/V2_statcast_dat
 
 V2_statcast_data_modeling <- V2_statcast_data_modeling %>%
   mutate(woba_value = as.factor(woba_value))
+
+## Binary At-Bat Outcome
+
+V2_statcast_data_modeling <- V2_statcast_data_modeling %>%
+  mutate(on_base_binary = case_when(woba_value == 0 ~ 0,
+                                    TRUE ~ 1))
 ```
 
 # Split dataset by handedness
@@ -58,7 +64,7 @@ Control for player and year
 
 
 ```{r}
-init_logistic_model <- glm(woba_value ~ p_throws +
+init_logistic_model <- glm(on_base_binary ~ p_throws +
                              general_pitch_type +
                              p_throws*general_fielding_alignment +
                              general_pitch_type*general_fielding_alignment +
@@ -75,7 +81,13 @@ summary(init_logistic_model)
 ```{r}
 pR2(init_logistic_model)
 ```
+
 ```{r}
 varImp(init_logistic_model)
 ```
+```{r}
+autoplot(init_logistic_model)
+```
+
+
 
