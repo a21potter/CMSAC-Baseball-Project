@@ -35,7 +35,7 @@ V2_statcast_data_modeling <- V2_statcast_data_modeling %>%
 ## Binary At-Bat Outcome
 
 V2_statcast_data_modeling <- V2_statcast_data_modeling %>%
-  mutate(on_base_binary = case_when(woba_value == 0 ~ 0,
+  mutate(on_base_binary = case_when((woba_value == 0 | last_pitch_of_at_bat == FALSE) ~ 0,
                                     TRUE ~ 1))
 ```
 
