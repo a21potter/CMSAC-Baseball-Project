@@ -29,7 +29,7 @@ names(statcast_data)[1] <- 'pitch_id'
  
 ```{r}
 statcast_data_minus_2020_2022 <- statcast_data %>%
-  filter(!(game_year %in% c(2020, 2022)))
+  filter(!(game_year %in% c(2015, 2016, 2017, 2020, 2022)))
 ```
 
 
@@ -173,7 +173,7 @@ unique(statcast_data_at_bats_minus_2020_2022$pitch_type)
 ## Variables as factors - SHOULD WE FORMAT MIDDLE NUMBERS (2,5,8) IN SAME WAY (M#?)
 
 ```{r}
-statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %>%
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   mutate(game_year = as.factor(game_year),
          batter = as.factor(batter),
          pitcher = as.factor(pitcher)) %>%
@@ -187,7 +187,7 @@ statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %
 ## Remove non-pitches
 
 ```{r}
-statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>%
+statcast_data_minus_2020_2022 <-statcast_data_minus_2020_2022 %>%
   filter(general_pitch_type != "Non-Pitch")
 ```
 
@@ -196,7 +196,7 @@ statcast_data_at_bats_minus_2020_2022 <-statcast_data_at_bats_minus_2020_2022 %>
 ## Fix zones
 
 ```{r}
-statcast_data_at_bats_minus_2020_2022 <- statcast_data_at_bats_minus_2020_2022 %>%
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
   #mutate(zone = as.numeric(zone)) %>%
   mutate(zone_new = case_when(stand == "L" & zone %in% c(1, 4, 7) ~ zone + 2,
                           stand == "L" & zone %in% c(11, 13) ~ zone + 2,
@@ -247,8 +247,8 @@ statcast_data_at_bats_minus_2020_2022_woba <- statcast_data_at_bats_minus_2020_2
 ## Binary At-Bat Outcome
 
 ```{r}
-statcast_data_at_bats_minus_2020_2022_woba <- statcast_data_at_bats_minus_2020_2022_woba %>%
-  mutate(on_base_binary = case_when(woba_value == 0 ~ 0,
+statcast_data_minus_2020_2022 <- statcast_data_minus_2020_2022 %>%
+    mutate(on_base_binary = case_when((woba_value == 0 | last_pitch_of_at_bat == FALSE) ~ 0,
                                     TRUE ~ 1))
 ```
 
@@ -256,7 +256,7 @@ statcast_data_at_bats_minus_2020_2022_woba <- statcast_data_at_bats_minus_2020_2
 ## Write modified dataset as RDS
 
 ```{r}
-write_rds(statcast_data_at_bats_minus_2020_2022_woba, "data/statcast_at_bat_model_data.rds", compress = "gz")
+write_rds(statcast_data_minus_2020_2022, "post-presentation/V2_data/V2_statcast_data_modified.rds", compress = "gz")
 ```
 
 

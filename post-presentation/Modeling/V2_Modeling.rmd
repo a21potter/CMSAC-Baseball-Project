@@ -21,11 +21,11 @@ library(mgcv)
 library(dplyr)
 library(ggfortify)
 library(broom)
-library(questionr)
-library(sjPlot)
-library(sjmisc)
-library(effects)
-library(pscl)
+#library(questionr)
+#library(sjPlot)
+#library(sjmisc)
+#library(effects)
+#library(pscl)
 library(caret)
 V2_statcast_data_modeling <- read_rds("post-presentation/V2_data/V2_statcast_data_modified.rds")
 
@@ -65,7 +65,7 @@ Control for player and year
 
 
 ```{r}
-init_logistic_model <- glm(on_base_binary ~ 
+init_logistic_model <- glm(on_base_binary ~ p_throws + general_pitch_type + pitch_outcome +
                              p_throws*general_fielding_alignment +
                              general_pitch_type*general_fielding_alignment +
                              pitch_outcome*general_fielding_alignment +
@@ -76,6 +76,8 @@ init_logistic_model <- glm(on_base_binary ~
 
 summary(init_logistic_model)
 #tab_model(init_logistic_model, p.style = "numeric_stars", transform = NULL, ci_method="wald")
+
+unique(V2_modeling_R$p_throw)
 ```
 # Plot the results of the model
 

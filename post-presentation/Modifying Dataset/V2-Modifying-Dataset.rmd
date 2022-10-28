@@ -116,6 +116,8 @@ V2_statcast_data <- V2_statcast_data %>%
 ```{r}
 V2_statcast_data <- V2_statcast_data %>%
   group_by(game_year, batter, stand) %>%
+  #filter(last_pitch_of_at_bat == TRUE) %>%
+  #count()
   mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
   filter(total_player_at_bats >= 200)
 ```
