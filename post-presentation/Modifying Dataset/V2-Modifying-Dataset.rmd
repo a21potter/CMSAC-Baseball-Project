@@ -114,10 +114,10 @@ V2_statcast_data <- V2_statcast_data %>%
 # 200+ at bats (overall)
 
 ```{r}
-#V2_statcast_data <- V2_statcast_data %>%
-  #group_by(game_year, batter, stand) %>%
-  #mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
-  #filter(total_player_at_bats >= 200)
+V2_statcast_data <- V2_statcast_data %>%
+  group_by(game_year, batter, stand) %>%
+  mutate(total_player_at_bats = length(which(last_pitch_of_at_bat == TRUE))) %>%
+  filter(total_player_at_bats >= 200)
 ```
 
 # Filter out NA values in each field alignment category, extreme outfield shift, and spring training/exhibition games
@@ -154,30 +154,6 @@ V2_statcast_data <- V2_statcast_data %>%
            case_when(of_fielding_alignment == "4th outfielder" ~ "Shift",
                      of_fielding_alignment == "Strategic" |
                        of_fielding_alignment == "Standard" ~ "Standard"))
-```
-
-# Adjust BABIP calculation to exclude NAs and variables not involved in finding BABIP (CASE_WHEN IS NOT WORKING)
-
-```{r}
-V2_statcast_data <- V2_statcast_data %>%
-  mutate(babip_value_with_NAs = case_when(last_pitch_of_at_bat == FALSE | events == "sac_bunt_double_play" | events == "sac_bunt" | events == "home_run" | description != "hit_into_play" ~ NA_real_,
-                                          TRUE ~ babip_value))
-```
-
-
-```{r}
-V2_statcast_data <- V2_statcast_data %>%
-#  filter(last_pitch_of_at_bat == TRUE) %>%
-  mutate(walk = case_when(events == "walk" ~ 1,
-                          TRUE ~ 0),
-         strikeout = case_when(events == "strikeout" ~ 1,
-                               TRUE ~ 0)) %>%
-  group_by(game_year, batter, stand, if_fielding_alignment) %>%
-  mutate(bb_rate = sum(walk) / length(which(last_pitch_of_at_bat == TRUE)),
-            k_rate = sum(strikeout) / length(which(last_pitch_of_at_bat == TRUE)),
-            babip = mean(babip_value, na.rm = TRUE),
-            woba = sum(woba_value, na.rm = TRUE) / length(which(last_pitch_of_at_bat == TRUE))) %>%
-  ungroup()
 ```
 
 
