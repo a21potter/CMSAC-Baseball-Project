@@ -40,13 +40,62 @@ V2_statcast_data_modeling <- V2_statcast_data_modeling %>%
   filter(game_year != 2022)
 ```
 
+
+# Find Proportions
+
+** slight change of plans, im gonna include proportion of the pitch type that they ended up hitting within an at bat... its easier and we can make an argument for it 
+
+- ex) if they hit a fast ball, and they saw 4 fastballs out of 5 total pitches, the prop will be 4/5
+
+- i think this is more relevant to what they actually do in the at bat
+
+correct me if im wrong, but what does it matter the types of pitches they saw besides the type they hit. like if they hit a breaking ball and it was the only breaking ball they saw, that seems relevant. but it isnt really relevant that they saw one breaking ball if they hit one of the 4 fastballs they saw out of the 5 total pitches?? do you get my logic? its more like, could they get used to the pitch
+
+
+i did the same with pitch zone, which i think is less ideal, but still arguable. if i have time to figure out how to do it otherwise, i will
+
+```{r}
+# slight change of plans - instead of 
+V2_statcast_data_modeling <- V2_statcast_data_modeling %>%
+  group_by(game_id, batter, at_bat_number, general_pitch_type) %>%
+  mutate(pitch_type_count_per_atbat = n()) %>%
+  #ungroup(general_pitch_type) %>%
+  mutate(prop_pitch_type_hit_per_atbat = pitch_type_count_per_atbat/pitch_count) %>%
+  ungroup()
+
+
+V2_statcast_data_modeling <- V2_statcast_data_modeling %>%
+  group_by(game_id, batter, at_bat_number, zone_simp) %>%
+  mutate(pitch_zone_count_per_atbat = n()) %>%
+  ungroup(zone_simp) %>%
+  mutate(prop_pitch_zone_per_atbat = pitch_zone_count_per_atbat/pitch_count) %>%
+  ungroup()
+```
+
+
+## At bat level data
+
+```{r}
+V2_statcast_data_modeling_atbats <- V2_statcast_data_modeling %>%
+  group_by(game_id, batter, at_bat_number) %>%
+  #arrange(pitch_number) %>%
+  mutate(pitch_count = max(pitch_number),
+         last_pitch_of_at_bat = case_when(pitch_number == pitch_count ~ TRUE,
+                                          TRUE ~ FALSE)) %>%
+  ungroup() %>%
+ filter(last_pitch_of_at_bat == TRUE)
+```
+
+
+
+
 # Split dataset by handedness
 
 ```{r}
-V2_modeling_R <- V2_statcast_data_modeling %>%
+V2_modeling_R <- V2_statcast_data_modeling_atbats %>%
   filter(stand == "R") 
 
-V2_modeling_L <- V2_statcast_data_modeling %>%
+V2_modeling_L <- V2_statcast_data_modeling_atbats %>%
   filter(stand == "L")
 ```
 
@@ -63,13 +112,16 @@ Total # of pitches
 
 Control for player and year
 
-
+*** add pitch count to model, add zone_simp*general_fielding_alignment, add stand -- model takes a while, but not forever. but it takes me longer on shitty phone hotspot
+maybe remove interaction between p_throws and fielding alignment? id rather have interactions be related to batter (do not include interactions with batter variable directly lmao)
 ```{r}
-init_logistic_model <- glm(on_base_binary ~ p_throws + general_pitch_type + pitch_outcome +
+init_logistic_model <- glm(on_base_binary ~ 
                              p_throws*general_fielding_alignment +
                              general_pitch_type*general_fielding_alignment +
+                             general_pitch_type*prop_pitch_type_hit_per_atbat+
+                             general_pitch_type*prop_pitch_zone_per_atbat+
                              pitch_outcome*general_fielding_alignment +
-                             player_name +
+                             batter +
                              game_year, 
                         data = V2_modeling_R, 
                         family = "binomial")
