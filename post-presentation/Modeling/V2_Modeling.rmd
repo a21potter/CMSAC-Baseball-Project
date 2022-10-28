@@ -114,13 +114,16 @@ Control for player and year
 
 *** add pitch count to model, add zone_simp*general_fielding_alignment, add stand -- model takes a while, but not forever. but it takes me longer on shitty phone hotspot
 maybe remove interaction between p_throws and fielding alignment? id rather have interactions be related to batter (do not include interactions with batter variable directly lmao)
+
+# Right-handed model
 ```{r}
 init_logistic_model <- glm(on_base_binary ~ 
-                             p_throws*general_fielding_alignment +
+                             pitch_count*general_fielding_alignment +
                              general_pitch_type*general_fielding_alignment +
                              general_pitch_type*prop_pitch_type_hit_per_atbat+
                              general_pitch_type*prop_pitch_zone_per_atbat+
                              pitch_outcome*general_fielding_alignment +
+                             zone_simp*general_fielding_alignment +
                              batter +
                              game_year, 
                         data = V2_modeling_R, 
@@ -131,6 +134,28 @@ summary(init_logistic_model)
 
 unique(V2_modeling_R$p_throw)
 ```
+
+# Left-handed model
+```{r}
+init_logistic_model <- glm(on_base_binary ~ 
+                             pitch_count*general_fielding_alignment +
+                             general_pitch_type*general_fielding_alignment +
+                             general_pitch_type*prop_pitch_type_hit_per_atbat+
+                             general_pitch_type*prop_pitch_zone_per_atbat+
+                             pitch_outcome*general_fielding_alignment +
+                             zone_simp*general_fielding_alignment +
+                             batter +
+                             game_year, 
+                        data = V2_modeling_L, 
+                        family = "binomial")
+
+summary(init_logistic_model)
+#tab_model(init_logistic_model, p.style = "numeric_stars", transform = NULL, ci_method="wald")
+
+unique(V2_modeling_R$p_throw)
+```
+
+
 # Plot the results of the model
 
 ```{r}
