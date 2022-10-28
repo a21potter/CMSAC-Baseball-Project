@@ -309,6 +309,8 @@ logit_model_plot_main
 logit_model_plot_faceted
 ```
 
+**EXPLAIN WHY NOT USE MIXED EFFECTS**
+
 However, we elected for a simpler approach to controlling for the influence of the batter, and focused our modeling on statistical inference rather than prediction.
 
 To best gauge the differences between right-handed and left-handed batters against the shift, we split the data into two subsets: **right-handed hitters** and **left-handed hitters**. With this approach, as mentioned above, switch hitters would be treated as separate observations based on their handedness for a particular plate appearance. From here, we chose to use a logistic regression to perform statistical inference on each subset, as a logistic model would allow us to explore the relationship between a dependent, binary variable and one or more independent (or predictor) variables. 
