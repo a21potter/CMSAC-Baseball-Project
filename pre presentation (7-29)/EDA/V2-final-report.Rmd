@@ -320,9 +320,12 @@ Although our analysis revolves primarily around wOBA, such a variable is continu
 We also decided to control for two variables: **game year** and **batter**. By controlling for the year, we are able to observe changes in getting on-base independent of the effect of general year-to-year trends. As for the batter, controlling for this variable eliminates the effect of the hitter (ex: hitter tendencies, how good a player is, etc.) on our explanation of the on-base outcome.
 
 We used several explanatory variables and interactions:
-  - The Interaction Between Pitcher Handedness and Fielding Alignment
   - The Interaction Between Pitch Type - **Fastball**, **Changeup,** and **Breaking-Ball** - and Fielding Alignment
   - The Interaction Between Pitch Outcome and Fielding Alignment
+  - The Interaction Between Pitch Count (Per At-Bat) and Fielding Alignment
+  - The Interaction Between Pitch Zone (of the Strikezone) and Fielding Alignment
+  - The Interaction Between Pitch Type - **Fastball**, **Changeup,** and **Breaking-Ball** - and the Proportion of Pitch Types (Per At-Bat)
+  - The Interaction Between Pitch Type - **Fastball**, **Changeup,** and **Breaking-Ball** - and the Proportion of Pitches Per Zone (Per At-Bat)
 
 ## {-}
   
@@ -343,6 +346,8 @@ We encountered several limitations with our exploratory work:
   
 
 ### Future Work 
+
+**Important Note:** Extreme shifts have been banned in the MLB for the upcoming 2023 season
 
 
 ## Acknowledgements

@@ -32,12 +32,13 @@ V2_statcast_data_modeling <- read_rds("post-presentation/V2_data/V2_statcast_dat
 V2_statcast_data_modeling <- V2_statcast_data_modeling %>%
   mutate(woba_value = as.factor(woba_value))
 
-## Binary At-Bat Outcome
+## Filter out 2018
 
 V2_statcast_data_modeling <- V2_statcast_data_modeling %>%
-  mutate(on_base_binary = case_when((woba_value == 0 | last_pitch_of_at_bat == FALSE) ~ 0,
-                                    TRUE ~ 1)) %>%
-  filter(game_year != 2022)
+  filter(game_year != 2018)
+
+#mutate(on_base_binary = case_when((woba_value == 0 | last_pitch_of_at_bat == FALSE) ~ 0,
+                                    #TRUE ~ 1))
 ```
 
 
@@ -117,7 +118,7 @@ maybe remove interaction between p_throws and fielding alignment? id rather have
 
 # Right-handed model
 ```{r}
-init_logistic_model <- glm(on_base_binary ~ 
+init_logistic_model_R <- glm(on_base_binary ~ 
                              pitch_count*general_fielding_alignment +
                              general_pitch_type*general_fielding_alignment +
                              general_pitch_type*prop_pitch_type_hit_per_atbat+
@@ -129,7 +130,7 @@ init_logistic_model <- glm(on_base_binary ~
                         data = V2_modeling_R, 
                         family = "binomial")
 
-summary(init_logistic_model)
+summary(init_logistic_model_R)
 #tab_model(init_logistic_model, p.style = "numeric_stars", transform = NULL, ci_method="wald")
 
 unique(V2_modeling_R$p_throw)
@@ -137,7 +138,7 @@ unique(V2_modeling_R$p_throw)
 
 # Left-handed model
 ```{r}
-init_logistic_model <- glm(on_base_binary ~ 
+init_logistic_model_L <- glm(on_base_binary ~ 
                              pitch_count*general_fielding_alignment +
                              general_pitch_type*general_fielding_alignment +
                              general_pitch_type*prop_pitch_type_hit_per_atbat+
@@ -149,10 +150,10 @@ init_logistic_model <- glm(on_base_binary ~
                         data = V2_modeling_L, 
                         family = "binomial")
 
-summary(init_logistic_model)
+summary(init_logistic_model_L)
 #tab_model(init_logistic_model, p.style = "numeric_stars", transform = NULL, ci_method="wald")
 
-unique(V2_modeling_R$p_throw)
+unique(V2_modeling_L$p_throw)
 ```
 
 
