@@ -88,6 +88,13 @@ V2_statcast_data_modeling_atbats <- V2_statcast_data_modeling %>%
 ```
 
 
+# Filter For Batter At Bat Outcomes
+
+```{r}
+V2_statcast_data_modeling_atbats %>%
+  
+```
+
 
 
 # Split dataset by handedness
@@ -118,12 +125,11 @@ maybe remove interaction between p_throws and fielding alignment? id rather have
 
 # Right-handed model
 ```{r}
-init_logistic_model_R <- glm(on_base_binary ~ 
+init_logistic_model_R <- glm(on_base_binary ~ p_throws +
                              pitch_count*general_fielding_alignment +
                              general_pitch_type*general_fielding_alignment +
-                             general_pitch_type*prop_pitch_type_hit_per_atbat+
-                             general_pitch_type*prop_pitch_zone_per_atbat+
-                             pitch_outcome*general_fielding_alignment +
+                             prop_pitch_type_hit_per_atbat+
+                             prop_pitch_zone_per_atbat+
                              zone_simp*general_fielding_alignment +
                              batter +
                              game_year, 
@@ -133,17 +139,27 @@ init_logistic_model_R <- glm(on_base_binary ~
 summary(init_logistic_model_R)
 #tab_model(init_logistic_model, p.style = "numeric_stars", transform = NULL, ci_method="wald")
 
-unique(V2_modeling_R$p_throw)
+model_variables_R <- c(names(init_logistic_model_R$coefficients))
+model_coefficients_R <- as.data.frame(init_logistic_model_R$coefficients)[,1]
+model_exp_coefficients_R <- as.data.frame(exp(init_logistic_model_R$coefficients))[,1]
+
+model_pvals_R <- as.data.frame(coef(summary(init_logistic_model_R))[,4])[,1]
+
+model_R_output <- data.frame(model_variables_R, 
+           model_coefficients_R, 
+           model_exp_coefficients_R,
+           model_pvals_R) %>%
+  filter(!grepl("batter", model_variables_R, fixed = TRUE))
+
 ```
 
 # Left-handed model
 ```{r}
-init_logistic_model_L <- glm(on_base_binary ~ 
+init_logistic_model_L <- glm(on_base_binary ~ p_throws +
                              pitch_count*general_fielding_alignment +
                              general_pitch_type*general_fielding_alignment +
-                             general_pitch_type*prop_pitch_type_hit_per_atbat+
-                             general_pitch_type*prop_pitch_zone_per_atbat+
-                             pitch_outcome*general_fielding_alignment +
+                             prop_pitch_type_hit_per_atbat+
+                             prop_pitch_zone_per_atbat+
                              zone_simp*general_fielding_alignment +
                              batter +
                              game_year, 
@@ -153,9 +169,35 @@ init_logistic_model_L <- glm(on_base_binary ~
 summary(init_logistic_model_L)
 #tab_model(init_logistic_model, p.style = "numeric_stars", transform = NULL, ci_method="wald")
 
-unique(V2_modeling_L$p_throw)
+model_variables_L <- c(names(init_logistic_model_L$coefficients))
+model_coefficients_L <- as.data.frame(init_logistic_model_L$coefficients)[,1]
+model_exp_coefficients_L <- as.data.frame(exp(init_logistic_model_L$coefficients))[,1]
+
+model_pvals_L <- as.data.frame(coef(summary(init_logistic_model_L))[,4])[,1]
+
+model_L_output <- data.frame(model_variables_L, 
+           model_coefficients_L, 
+           model_exp_coefficients_L,
+           model_pvals_L) %>%
+  filter(!grepl("batter", model_variables_L, fixed = TRUE))
+
 ```
 
+
+```{r}
+model_R_output
+model_L_output
+```
+prop_pitch_type_hit_per_atbat
+zone_simpMiddle
+zone_simpOutside
+
+# Read in model
+
+model_L <- read_rds(post-presentation/modelL.RDS)
+```{r}
+model_L <- read_rds("post-presentation/modelL.RDS")
+```
 
 # Plot the results of the model
 
