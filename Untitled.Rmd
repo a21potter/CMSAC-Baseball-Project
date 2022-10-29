@@ -1,0 +1,27 @@
+---
+title: "Untitled"
+author: "Amber Potter"
+date: "10/29/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+$H_0: \mu_{}
+
+
+```{r}
+read_rds("post-presentation/V2_data/t_tests.rds")
+```
+
+
+
+```{r}
+read_rds("post-presentation/V2_data/model_R_output_simp.rds")
+
+ read_rds("post-presentation/V2_data/model_L_output_simp.rds")
+```
+
